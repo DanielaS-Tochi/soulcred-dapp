@@ -80,9 +80,9 @@ Create a `.env` file with the following variables:
 
 ```env
 # Blockchain Configuration
-VITE_ALCHEMY_API_KEY=DB_ZNWS2fkSlNmPDc3TJy
+VITE_ALCHEMY_API_KEY=your_alchemy_api_key
 VITE_INFURA_API_KEY=your_infura_api_key_here
-VITE_WALLETCONNECT_PROJECT_ID=eb6d593096bfa3db583f2971a575d33e
+VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 
 # IPFS Configuration (Pinata)
 VITE_PINATA_API_KEY=your_pinata_api_key_here
@@ -114,8 +114,8 @@ This project is configured for automatic deployment to Netlify:
    - Go to Site Settings > Environment Variables
    - Add the following variables:
    ```
-   VITE_ALCHEMY_API_KEY = DB_ZNWS2fkSlNmPDc3TJy
-   VITE_WALLETCONNECT_PROJECT_ID = eb6d593096bfa3db583f2971a575d33e
+   VITE_ALCHEMY_API_KEY = 
+   VITE_WALLETCONNECT_PROJECT_ID = 
    VITE_PINATA_API_KEY = (your Pinata API key)
    VITE_PINATA_SECRET_KEY = (your Pinata secret)
    VITE_PINATA_JWT = (your Pinata JWT)
