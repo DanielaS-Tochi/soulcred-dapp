@@ -1,5 +1,5 @@
 import { createConfig, configureChains } from 'wagmi';
-import { sepolia, polygonMumbai, goerli } from 'wagmi/chains';
+import { sepolia, polygonMumbai, goerli, mainnet, polygon } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
 import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { infuraProvider } from 'wagmi/providers/infura';
@@ -28,9 +28,16 @@ if (infuraApiKey && infuraApiKey !== 'your_infura_api_key_here' && infuraApiKey.
 // Always add public provider as fallback
 providers.push(publicProvider());
 
-// Configure chains with available providers
+// Configure chains - include mainnet for production readiness
+const supportedChains = [sepolia, polygonMumbai, goerli];
+
+// Add mainnet chains if in production
+if (import.meta.env.PROD) {
+  supportedChains.unshift(mainnet, polygon);
+}
+
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [sepolia, polygonMumbai, goerli],
+  supportedChains,
   providers
 );
 
@@ -44,7 +51,7 @@ try {
     walletConnectProjectId !== 'your_walletconnect_project_id_here' &&
     walletConnectProjectId !== 'demo' &&
     walletConnectProjectId !== '' &&
-    walletConnectProjectId.length >= 32; // WalletConnect project IDs are 32+ characters
+    walletConnectProjectId.length >= 32;
 
   if (isWalletConnectValid) {
     console.log('✅ WalletConnect configured with project ID:', walletConnectProjectId.slice(0, 8) + '...');
@@ -57,12 +64,10 @@ try {
     walletConnectConfigured = true;
   } else {
     console.warn('⚠️ WalletConnect not properly configured. Using fallback connectors.');
-    console.log('📝 To enable WalletConnect, set VITE_WALLETCONNECT_PROJECT_ID to a valid project ID from https://cloud.walletconnect.com');
     throw new Error('WalletConnect not configured');
   }
 } catch (error) {
   console.log('🔄 Using fallback wallet connectors (MetaMask + Injected)');
-  // Fallback to basic connectors that don't require external services
   connectors = [
     new MetaMaskConnector({ 
       chains,
@@ -83,7 +88,7 @@ try {
 }
 
 export const wagmiConfig = createConfig({
-  autoConnect: true, // Enable auto-connect for better UX
+  autoConnect: true,
   connectors,
   publicClient,
   webSocketPublicClient,
@@ -91,14 +96,16 @@ export const wagmiConfig = createConfig({
 
 export { chains };
 
-// Contract addresses for different networks
+// Contract addresses for different networks - Updated for production
 export const CONTRACT_ADDRESSES = {
-  [sepolia.id]: null,  // Set to actual address after deployment
-  [polygonMumbai.id]: null, // Set to actual address after deployment
-  [goerli.id]: null, // Set to actual address after deployment
+  [mainnet.id]: null, // Deploy to mainnet when ready
+  [polygon.id]: null, // Deploy to Polygon when ready
+  [sepolia.id]: null, // Set after testnet deployment
+  [polygonMumbai.id]: null, // Set after testnet deployment
+  [goerli.id]: null, // Set after testnet deployment
 } as const;
 
-// IPFS Configuration
+// IPFS Configuration with validation
 export const IPFS_CONFIG = {
   pinataApiKey: import.meta.env.VITE_PINATA_API_KEY,
   pinataSecretKey: import.meta.env.VITE_PINATA_SECRET_KEY,
@@ -109,7 +116,7 @@ export const IPFS_CONFIG = {
 // Default network for development
 export const DEFAULT_CHAIN = sepolia;
 
-// Helper function to check if blockchain services are properly configured
+// Helper functions with improved validation
 export const isBlockchainConfigured = () => {
   return !!(
     (alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here') ||
@@ -117,17 +124,14 @@ export const isBlockchainConfigured = () => {
   );
 };
 
-// Helper function to check if WalletConnect is configured
 export const isWalletConnectConfigured = () => {
   return walletConnectConfigured;
 };
 
-// Helper function to check if contracts are deployed
 export const isContractDeployed = (chainId: number) => {
   return CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES] !== null;
 };
 
-// Helper function to get contract address safely
 export const getContractAddress = (chainId: number) => {
   const address = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
   if (!address) {
@@ -137,12 +141,51 @@ export const getContractAddress = (chainId: number) => {
   return address;
 };
 
-// Debug function to check configuration status
 export const getConfigurationStatus = () => {
   return {
     walletConnect: walletConnectConfigured,
     alchemy: !!(alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here'),
     infura: !!(infuraApiKey && infuraApiKey !== 'your_infura_api_key_here'),
     pinata: !!(IPFS_CONFIG.pinataJWT && IPFS_CONFIG.pinataJWT !== 'your_pinata_jwt_here'),
+    environment: import.meta.env.MODE,
+    production: import.meta.env.PROD,
   };
+};
+
+// Network configuration helper
+export const getNetworkConfig = (chainId: number) => {
+  const networkConfigs = {
+    [mainnet.id]: {
+      name: 'Ethereum Mainnet',
+      currency: 'ETH',
+      explorerUrl: 'https://etherscan.io',
+      rpcUrl: `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}`,
+    },
+    [polygon.id]: {
+      name: 'Polygon',
+      currency: 'MATIC',
+      explorerUrl: 'https://polygonscan.com',
+      rpcUrl: `https://polygon-mainnet.g.alchemy.com/v2/${alchemyApiKey}`,
+    },
+    [sepolia.id]: {
+      name: 'Sepolia Testnet',
+      currency: 'ETH',
+      explorerUrl: 'https://sepolia.etherscan.io',
+      rpcUrl: `https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`,
+    },
+    [polygonMumbai.id]: {
+      name: 'Polygon Mumbai',
+      currency: 'MATIC',
+      explorerUrl: 'https://mumbai.polygonscan.com',
+      rpcUrl: `https://polygon-mumbai.g.alchemy.com/v2/${alchemyApiKey}`,
+    },
+    [goerli.id]: {
+      name: 'Goerli Testnet',
+      currency: 'ETH',
+      explorerUrl: 'https://goerli.etherscan.io',
+      rpcUrl: `https://eth-goerli.g.alchemy.com/v2/${alchemyApiKey}`,
+    },
+  };
+
+  return networkConfigs[chainId] || null;
 };

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Upload, Plus, X, CheckCircle, Award, Loader, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Upload, Plus, X, CheckCircle, Award, Loader, AlertCircle, ExternalLink } from 'lucide-react';
 import { useAccount, useNetwork } from 'wagmi';
 import { useSoulCredContract } from '../../hooks/useContract';
 import { ipfsService } from '../../services/ipfsService';
-import { getContractAddress, isContractDeployed } from '../../config/blockchain';
+import { getContractAddress, isContractDeployed, getNetworkConfig } from '../../config/blockchain';
 import FileUpload from '../ui/FileUpload';
+import { useToast } from '../ui/Toast';
 
 interface FormData {
   title: string;
@@ -26,6 +27,8 @@ const EnhancedMintCredential: React.FC = () => {
   const { address } = useAccount();
   const { chain } = useNetwork();
   const { mintCredential, isMinting, isContractReady } = useSoulCredContract();
+  const { addToast } = useToast();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -33,6 +36,7 @@ const EnhancedMintCredential: React.FC = () => {
   const [newEvidence, setNewEvidence] = useState('');
   const [mintedTokenId, setMintedTokenId] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -59,6 +63,10 @@ const EnhancedMintCredential: React.FC = () => {
     'Education',
     'Research',
     'Community',
+    'Data Science',
+    'DevOps',
+    'Product Management',
+    'Marketing',
   ];
 
   const steps = [
@@ -71,60 +79,95 @@ const EnhancedMintCredential: React.FC = () => {
   // Check if contract is deployed on current network
   const isContractAvailable = chain?.id ? isContractDeployed(chain.id) : false;
   const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
+  const networkConfig = chain?.id ? getNetworkConfig(chain.id) : null;
 
-  const handleInputChange = (field: keyof FormData, value: any) => {
+  const handleInputChange = useCallback((field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleMetricChange = (metric: keyof FormData['impactMetrics'], value: number) => {
+  const handleMetricChange = useCallback((metric: keyof FormData['impactMetrics'], value: number) => {
     setFormData(prev => ({
       ...prev,
       impactMetrics: {
         ...prev.impactMetrics,
-        [metric]: value,
+        [metric]: Math.max(0, value), // Ensure non-negative values
       },
     }));
-  };
+  }, []);
 
-  const addSkill = () => {
-    if (newSkill.trim() && !formData.skills.includes(newSkill.trim())) {
+  const addSkill = useCallback(() => {
+    const trimmedSkill = newSkill.trim();
+    if (trimmedSkill && !formData.skills.includes(trimmedSkill) && formData.skills.length < 20) {
       setFormData(prev => ({
         ...prev,
-        skills: [...prev.skills, newSkill.trim()],
+        skills: [...prev.skills, trimmedSkill],
       }));
       setNewSkill('');
     }
-  };
+  }, [newSkill, formData.skills]);
 
-  const removeSkill = (skillToRemove: string) => {
+  const removeSkill = useCallback((skillToRemove: string) => {
     setFormData(prev => ({
       ...prev,
       skills: prev.skills.filter(skill => skill !== skillToRemove),
     }));
-  };
+  }, []);
 
-  const addEvidence = () => {
-    if (newEvidence.trim() && !formData.evidence.includes(newEvidence.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        evidence: [...prev.evidence, newEvidence.trim()],
-      }));
-      setNewEvidence('');
+  const addEvidence = useCallback(() => {
+    const trimmedEvidence = newEvidence.trim();
+    if (trimmedEvidence && !formData.evidence.includes(trimmedEvidence) && formData.evidence.length < 10) {
+      // Validate URL format
+      try {
+        new URL(trimmedEvidence);
+        setFormData(prev => ({
+          ...prev,
+          evidence: [...prev.evidence, trimmedEvidence],
+        }));
+        setNewEvidence('');
+      } catch {
+        addToast({
+          type: 'error',
+          title: 'Invalid URL',
+          message: 'Please enter a valid URL for evidence',
+        });
+      }
     }
-  };
+  }, [newEvidence, formData.evidence, addToast]);
 
-  const removeEvidence = (evidenceToRemove: string) => {
+  const removeEvidence = useCallback((evidenceToRemove: string) => {
     setFormData(prev => ({
       ...prev,
       evidence: prev.evidence.filter(evidence => evidence !== evidenceToRemove),
     }));
-  };
+  }, []);
 
-  const handleFileSelect = (files: File[]) => {
+  const handleFileSelect = useCallback((files: File[]) => {
     setFormData(prev => ({ ...prev, evidenceFiles: files }));
-  };
+  }, []);
+
+  const validateForm = useCallback(() => {
+    const errors: string[] = [];
+
+    if (!formData.title.trim()) errors.push('Title is required');
+    if (!formData.category) errors.push('Category is required');
+    if (!formData.description.trim()) errors.push('Description is required');
+    if (formData.skills.length === 0) errors.push('At least one skill is required');
+    if (formData.evidence.length === 0 && formData.evidenceFiles.length === 0) {
+      errors.push('At least one piece of evidence is required');
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join(', '));
+      return false;
+    }
+
+    setError('');
+    return true;
+  }, [formData]);
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     if (!isContractAvailable || !contractAddress || !address) {
       setError('Smart contract not available on this network or wallet not connected');
       return;
@@ -132,54 +175,55 @@ const EnhancedMintCredential: React.FC = () => {
 
     setIsSubmitting(true);
     setError('');
+    setUploadProgress('');
 
     try {
-      // For demo purposes, simulate the minting process
-      // In a real implementation, you would:
-      // 1. Upload files to IPFS
-      // 2. Create metadata
-      // 3. Call the smart contract
+      // Check IPFS service
+      if (!ipfsService.isReady()) {
+        throw new Error('IPFS service not configured. Please set up Pinata credentials.');
+      }
 
-      // Simulate IPFS upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setUploadProgress('Uploading evidence files to IPFS...');
 
-      // Simulate contract interaction
-      const mockTokenId = Math.floor(Math.random() * 10000).toString();
-      
-      // For now, just simulate success
-      setMintedTokenId(mockTokenId);
-      setIsSuccess(true);
-
-      // In a real implementation:
-      /*
       // Step 1: Upload evidence files to IPFS
       const evidenceUrls: string[] = [];
-      for (const file of formData.evidenceFiles) {
+      for (let i = 0; i < formData.evidenceFiles.length; i++) {
+        const file = formData.evidenceFiles[i];
+        setUploadProgress(`Uploading file ${i + 1} of ${formData.evidenceFiles.length}...`);
+        
         const result = await ipfsService.uploadFile(file, {
           name: `${formData.title}-evidence-${file.name}`,
           keyvalues: {
             type: 'evidence',
             credential: formData.title,
+            category: formData.category,
           },
         });
         evidenceUrls.push(result.gatewayUrl);
       }
 
-      // Step 2: Create and upload NFT metadata
-      const metadata = ipfsService.createNFTMetadata(
-        {
-          ...formData,
-          evidence: [...formData.evidence, ...evidenceUrls],
-          dateEarned: new Date().toISOString(),
-          verified: false,
-        },
-        'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=600&h=400'
-      );
+      setUploadProgress('Creating credential metadata...');
 
+      // Step 2: Create and upload NFT metadata
+      const credentialData = {
+        ...formData,
+        evidence: [...formData.evidence, ...evidenceUrls],
+        dateEarned: new Date().toISOString(),
+        verified: false,
+      };
+
+      // Use a default image or generate one based on category
+      const defaultImage = 'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=600&h=400';
+      
+      const metadata = ipfsService.createNFTMetadata(credentialData, defaultImage);
+      
+      setUploadProgress('Uploading metadata to IPFS...');
       const metadataResult = await ipfsService.uploadJSON(metadata, `${formData.title}-metadata`);
 
+      setUploadProgress('Preparing blockchain transaction...');
+
       // Step 3: Prepare contract data
-      const credentialData = {
+      const contractCredentialData = {
         title: formData.title,
         category: formData.category,
         description: formData.description,
@@ -194,26 +238,42 @@ const EnhancedMintCredential: React.FC = () => {
         recipient: address,
       };
 
+      setUploadProgress('Minting credential on blockchain...');
+
       // Step 4: Mint the SBT
       const result = await mintCredential({
-        args: [address, metadataResult.gatewayUrl, credentialData],
+        args: [address, metadataResult.gatewayUrl, contractCredentialData],
       });
 
       setMintedTokenId(result.hash);
       setIsSuccess(true);
-      */
+
+      addToast({
+        type: 'success',
+        title: 'Credential Minted!',
+        message: 'Your credential has been successfully created on the blockchain.',
+      });
+
     } catch (error) {
       console.error('Minting error:', error);
-      setError('Failed to mint credential. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to mint credential';
+      setError(errorMessage);
+      
+      addToast({
+        type: 'error',
+        title: 'Minting Failed',
+        message: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
+      setUploadProgress('');
     }
   };
 
-  const canProceed = (step: number) => {
+  const canProceed = useCallback((step: number) => {
     switch (step) {
       case 1:
-        return formData.title && formData.category && formData.description;
+        return formData.title.trim() && formData.category && formData.description.trim();
       case 2:
         return formData.skills.length > 0 && (formData.evidence.length > 0 || formData.evidenceFiles.length > 0);
       case 3:
@@ -223,7 +283,30 @@ const EnhancedMintCredential: React.FC = () => {
       default:
         return false;
     }
-  };
+  }, [formData, address, chain]);
+
+  const resetForm = useCallback(() => {
+    setIsSuccess(false);
+    setCurrentStep(1);
+    setMintedTokenId('');
+    setError('');
+    setUploadProgress('');
+    setFormData({
+      title: '',
+      category: '',
+      description: '',
+      skills: [],
+      evidence: [],
+      evidenceFiles: [],
+      impactMetrics: {
+        learningHours: 0,
+        projectsCompleted: 0,
+        peersHelped: 0,
+        communityContributions: 0,
+      },
+      issuer: 'Self-Issued',
+    });
+  }, []);
 
   if (isSuccess) {
     return (
@@ -243,41 +326,34 @@ const EnhancedMintCredential: React.FC = () => {
           </p>
 
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Token ID</p>
-            <p className="font-mono text-sm text-gray-900 dark:text-white">
-              #{mintedTokenId}
-            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Transaction Hash</p>
+            <div className="flex items-center justify-center space-x-2">
+              <p className="font-mono text-sm text-gray-900 dark:text-white break-all">
+                {mintedTokenId}
+              </p>
+              {networkConfig && (
+                <a
+                  href={`${networkConfig.explorerUrl}/tx/${mintedTokenId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                  title="View on block explorer"
+                >
+                  <ExternalLink size={16} />
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => {
-                setIsSuccess(false);
-                setCurrentStep(1);
-                setMintedTokenId('');
-                setError('');
-                setFormData({
-                  title: '',
-                  category: '',
-                  description: '',
-                  skills: [],
-                  evidence: [],
-                  evidenceFiles: [],
-                  impactMetrics: {
-                    learningHours: 0,
-                    projectsCompleted: 0,
-                    peersHelped: 0,
-                    communityContributions: 0,
-                  },
-                  issuer: 'Self-Issued',
-                });
-              }}
+              onClick={resetForm}
               className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
             >
               Mint Another
             </button>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.href = '/'}
               className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
             >
               View Dashboard
@@ -299,6 +375,18 @@ const EnhancedMintCredential: React.FC = () => {
           Create a permanent, blockchain-verified record of your learning achievements.
         </p>
         
+        {/* Network Status */}
+        {chain && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-blue-700 dark:text-blue-300 text-sm font-medium">
+                Connected to {networkConfig?.name || chain.name}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Contract Status */}
         {!isContractAvailable && (
           <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -311,6 +399,23 @@ const EnhancedMintCredential: React.FC = () => {
                 <p className="text-yellow-600 dark:text-yellow-400 text-xs">
                   The SoulCred contract is not yet deployed on {chain?.name || 'this network'}. 
                   You can still create credentials in demo mode.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* IPFS Status */}
+        {!ipfsService.isReady() && (
+          <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <div>
+                <p className="text-orange-700 dark:text-orange-300 text-sm font-medium">
+                  IPFS Service Not Configured
+                </p>
+                <p className="text-orange-600 dark:text-orange-400 text-xs">
+                  File uploads will not work without Pinata configuration. Evidence links can still be added manually.
                 </p>
               </div>
             </div>
@@ -334,7 +439,7 @@ const EnhancedMintCredential: React.FC = () => {
             <div key={step.id} className="flex items-center">
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
                     currentStep >= step.id
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -353,7 +458,7 @@ const EnhancedMintCredential: React.FC = () => {
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mx-4 ${
+                  className={`flex-1 h-0.5 mx-4 transition-colors ${
                     currentStep > step.id
                       ? 'bg-purple-600'
                       : 'bg-gray-200 dark:bg-gray-700'
@@ -383,8 +488,12 @@ const EnhancedMintCredential: React.FC = () => {
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="e.g., Advanced React Development Certification"
+                maxLength={100}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.title.length}/100 characters
+              </p>
             </div>
 
             <div>
@@ -414,8 +523,12 @@ const EnhancedMintCredential: React.FC = () => {
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe your achievement, what you learned, and how you demonstrated your skills..."
                 rows={4}
+                maxLength={500}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.description.length}/500 characters
+              </p>
             </div>
 
             <div>
@@ -427,6 +540,7 @@ const EnhancedMintCredential: React.FC = () => {
                 value={formData.issuer}
                 onChange={(e) => handleInputChange('issuer', e.target.value)}
                 placeholder="e.g., University Name, Company, Self-Issued"
+                maxLength={100}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -442,7 +556,7 @@ const EnhancedMintCredential: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Skills Developed *
+                Skills Developed * (Max 20)
               </label>
               <div className="flex space-x-2 mb-3">
                 <input
@@ -450,12 +564,15 @@ const EnhancedMintCredential: React.FC = () => {
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
                   placeholder="Add a skill..."
+                  maxLength={50}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                   onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                  disabled={formData.skills.length >= 20}
                 />
                 <button
                   onClick={addSkill}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  disabled={formData.skills.length >= 20}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg transition-colors"
                 >
                   <Plus size={16} />
                 </button>
@@ -476,24 +593,29 @@ const EnhancedMintCredential: React.FC = () => {
                   </span>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.skills.length}/20 skills
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Evidence Links
+                Evidence Links (Max 10)
               </label>
               <div className="flex space-x-2 mb-3">
                 <input
-                  type="text"
+                  type="url"
                   value={newEvidence}
                   onChange={(e) => setNewEvidence(e.target.value)}
-                  placeholder="e.g., GitHub repository, live demo, certificate URL..."
+                  placeholder="e.g., https://github.com/username/project"
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                   onKeyPress={(e) => e.key === 'Enter' && addEvidence()}
+                  disabled={formData.evidence.length >= 10}
                 />
                 <button
                   onClick={addEvidence}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  disabled={formData.evidence.length >= 10}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg transition-colors"
                 >
                   <Plus size={16} />
                 </button>
@@ -504,23 +626,37 @@ const EnhancedMintCredential: React.FC = () => {
                     key={index}
                     className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <span className="text-sm text-gray-900 dark:text-white">{evidence}</span>
+                    <a
+                      href={evidence}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-purple-600 dark:text-purple-400 hover:underline flex-1 truncate"
+                    >
+                      {evidence}
+                    </a>
                     <button
                       onClick={() => removeEvidence(evidence)}
-                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 ml-2"
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.evidence.length}/10 evidence links
+              </p>
             </div>
 
-            <FileUpload
-              onFileSelect={handleFileSelect}
-              label="Upload Evidence Files"
-              description="Upload certificates, screenshots, documents, or other proof of your achievement"
-            />
+            {ipfsService.isReady() && (
+              <FileUpload
+                onFileSelect={handleFileSelect}
+                label="Upload Evidence Files"
+                description="Upload certificates, screenshots, documents, or other proof of your achievement"
+                maxFiles={5}
+                maxSize={10 * 1024 * 1024} // 10MB
+              />
+            )}
           </div>
         )}
 
@@ -544,6 +680,7 @@ const EnhancedMintCredential: React.FC = () => {
                   value={formData.impactMetrics.learningHours}
                   onChange={(e) => handleMetricChange('learningHours', parseInt(e.target.value) || 0)}
                   min="0"
+                  max="10000"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -557,6 +694,7 @@ const EnhancedMintCredential: React.FC = () => {
                   value={formData.impactMetrics.projectsCompleted}
                   onChange={(e) => handleMetricChange('projectsCompleted', parseInt(e.target.value) || 0)}
                   min="0"
+                  max="1000"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -570,6 +708,7 @@ const EnhancedMintCredential: React.FC = () => {
                   value={formData.impactMetrics.peersHelped}
                   onChange={(e) => handleMetricChange('peersHelped', parseInt(e.target.value) || 0)}
                   min="0"
+                  max="10000"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -583,6 +722,7 @@ const EnhancedMintCredential: React.FC = () => {
                   value={formData.impactMetrics.communityContributions}
                   onChange={(e) => handleMetricChange('communityContributions', parseInt(e.target.value) || 0)}
                   min="0"
+                  max="1000"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -670,11 +810,11 @@ const EnhancedMintCredential: React.FC = () => {
               </div>
             </div>
 
-            {isSubmitting && (
+            {(isSubmitting || uploadProgress) && (
               <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 text-center">
                 <Loader className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin mx-auto mb-4" />
                 <p className="text-purple-700 dark:text-purple-300 font-medium mb-2">
-                  {isContractAvailable ? 'Minting your credential on the blockchain...' : 'Creating your credential...'}
+                  {uploadProgress || 'Processing your credential...'}
                 </p>
                 <p className="text-sm text-purple-600 dark:text-purple-400">
                   {isContractAvailable 

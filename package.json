@@ -3,12 +3,43 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "Decentralized platform for issuing and managing Soulbound Tokens representing learning achievements",
+  "author": "Daniela Silvana Tochi",
+  "license": "MIT",
+  "homepage": "https://soulcred.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielas-tochi/soulcred-dapp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danielas-tochi/soulcred-dapp/issues"
+  },
+  "keywords": [
+    "web3",
+    "blockchain",
+    "soulbound-tokens",
+    "credentials",
+    "education",
+    "decentralized",
+    "ethereum",
+    "react",
+    "typescript"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
     "preview": "vite preview",
-    "deploy": "npm run build && npm run deploy:netlify"
+    "type-check": "tsc --noEmit",
+    "test": "echo \"Tests will be added in future versions\" && exit 0",
+    "test:watch": "echo \"Tests will be added in future versions\" && exit 0",
+    "test:coverage": "echo \"Tests will be added in future versions\" && exit 0",
+    "deploy": "npm run build && npm run deploy:netlify",
+    "deploy:netlify": "netlify deploy --prod --dir=dist",
+    "analyze": "npx vite-bundle-analyzer dist/stats.html",
+    "clean": "rm -rf dist node_modules/.vite",
+    "prepare": "husky install || true"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -38,6 +69,23 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "vite-bundle-analyzer": "^0.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
