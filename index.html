@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SoulCred - Decentralized platform for issuing and managing Soulbound Tokens representing learning achievements and community contributions." />
+    <meta name="keywords" content="Web3, Soulbound Tokens, SBT, Credentials, Learning, Blockchain, Decentralized, Education" />
+    <meta name="author" content="Daniela Silvana Tochi" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SoulCred - Decentralized Credential Platform" />
+    <meta property="og:description" content="Create and manage Soulbound Tokens that represent your learning achievements and community contributions." />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="SoulCred - Decentralized Credential Platform" />
+    <meta property="twitter:description" content="Create and manage Soulbound Tokens that represent your learning achievements and community contributions." />
+    
+    <title>SoulCred - Decentralized Credential Platform</title>
+    
+    <!-- Custom Bolt.new Badge Configuration -->
+    <style>
+      .bolt-badge {
+        transition: all 0.3s ease;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        width: 3rem;
+        height: 3rem;
+        z-index: 9999;
+      }
+      
+      .bolt-badge:hover {
+        transform: scale(1.05);
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+      }
+      
+      @keyframes badgeIntro {
+        0% { 
+          transform: scale(0.1) translateX(20px); 
+          opacity: 0; 
+        }
+        50% { 
+          transform: scale(1.1) translateX(0); 
+        }
+        100% { 
+          transform: scale(1) translateX(0); 
+          opacity: 1; 
+        }
+      }
+      
+      .bolt-badge-intro {
+        animation: badgeIntro 0.8s ease-out 1.5s both;
+      }
+      
+      .bolt-badge-intro.animated {
+        animation: none;
+      }
+      
+      @keyframes badgePulse {
+        0%, 100% { 
+          transform: scale(1); 
+          opacity: 0.9; 
+        }
+        50% { 
+          transform: scale(1.02); 
+          opacity: 1; 
+        }
+      }
+      
+      .bolt-badge.animated {
+        animation: badgePulse 3s ease-in-out infinite;
+      }
+      
+      /* Responsive positioning and sizing */
+      .bolt-badge-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+      }
+      
+      /* Adjust position when header is present */
+      @media (min-width: 768px) {
+        .bolt-badge-container {
+          top: 1.25rem;
+          right: 1.25rem;
+        }
+        .bolt-badge {
+          width: 3.5rem;
+          height: 3.5rem;
+        }
+      }
+      
+      @media (min-width: 1024px) {
+        .bolt-badge-container {
+          top: 1.5rem;
+          right: 1.5rem;
+        }
+        .bolt-badge {
+          width: 4rem;
+          height: 4rem;
+        }
+      }
+      
+      /* Adjust for mobile when header navigation is visible */
+      @media (max-width: 767px) {
+        .bolt-badge-container {
+          top: 0.75rem;
+          right: 0.75rem;
+        }
+        .bolt-badge {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      }
+      
+      /* Ensure badge doesn't interfere with header content */
+      .bolt-badge-container.header-present {
+        top: 5rem;
+      }
+      
+      @media (min-width: 768px) {
+        .bolt-badge-container.header-present {
+          top: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Bolt.new Badge -->
+    <div class="bolt-badge-container">
+      <a href="https://bolt.new/?rid=os72mi" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="block transition-all duration-300 hover:shadow-2xl"
+         title="Built with Bolt.new">
+        <img src="https://storage.bolt.army/black_circle_360x360.png" 
+             alt="Built with Bolt.new" 
+             class="bolt-badge bolt-badge-intro rounded-full shadow-lg border-2 border-white/20 backdrop-blur-sm"
+             onanimationend="this.classList.add('animated')" />
+      </a>
+    </div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Script to adjust badge position based on header presence -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const badgeContainer = document.querySelector('.bolt-badge-container');
+        const observer = new MutationObserver(function() {
+          const header = document.querySelector('header');
+          if (header && window.innerWidth < 768) {
+            badgeContainer.classList.add('header-present');
+          } else {
+            badgeContainer.classList.remove('header-present');
+          }
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Initial check
+        setTimeout(() => {
+          const header = document.querySelector('header');
+          if (header && window.innerWidth < 768) {
+            badgeContainer.classList.add('header-present');
+          }
+        }, 100);
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+          const header = document.querySelector('header');
+          if (header && window.innerWidth < 768) {
+            badgeContainer.classList.add('header-present');
+          } else {
+            badgeContainer.classList.remove('header-present');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
