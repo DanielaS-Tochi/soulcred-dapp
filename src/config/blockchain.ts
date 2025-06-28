@@ -7,43 +7,33 @@ import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 
-// Get API keys from environment variables with proper validation
-const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY;
-const infuraApiKey = import.meta.env.VITE_INFURA_API_KEY;
-const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+// Get API keys from environment variables - these will be undefined in production build
+const alchemyApiKey = typeof window === 'undefined' ? process.env.VITE_ALCHEMY_API_KEY : undefined;
+const infuraApiKey = typeof window === 'undefined' ? process.env.VITE_INFURA_API_KEY : undefined;
+const walletConnectProjectId = typeof window === 'undefined' ? process.env.VITE_WALLETCONNECT_PROJECT_ID : undefined;
 
-// Validate API keys
-const isValidApiKey = (key: string | undefined): boolean => {
-  return !!(key && 
-    key !== 'your_alchemy_api_key_here' && 
-    key !== 'your_infura_api_key_here' && 
-    key !== 'demo' && 
-    key !== '' && 
-    key.length > 10);
-};
+// For client-side, we'll use public providers and basic wallet connectors
+const isClientSide = typeof window !== 'undefined';
 
-// Configure providers with fallbacks
+// Configure providers with public fallbacks for client-side
 const providers = [];
 
-// Add Alchemy provider if available
-if (isValidApiKey(alchemyApiKey)) {
+// Only add API-based providers on server-side or if explicitly configured
+if (!isClientSide && alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here') {
   providers.push(alchemyProvider({ apiKey: alchemyApiKey }));
-  console.log('✅ Alchemy provider configured');
-} else {
-  console.warn('⚠️ Alchemy API key not configured or invalid');
+  console.log('✅ Alchemy provider configured (server-side)');
 }
 
-// Add Infura provider if available
-if (isValidApiKey(infuraApiKey)) {
+if (!isClientSide && infuraApiKey && infuraApiKey !== 'your_infura_api_key_here') {
   providers.push(infuraProvider({ apiKey: infuraApiKey }));
-  console.log('✅ Infura provider configured');
-} else {
-  console.warn('⚠️ Infura API key not configured or invalid');
+  console.log('✅ Infura provider configured (server-side)');
 }
 
-// Always add public provider as fallback
+// Always add public provider
 providers.push(publicProvider());
-console.log('✅ Public provider added as fallback');
+if (isClientSide) {
+  console.log('✅ Using public providers for client-side');
+}
 
 // Configure chains - prioritize testnets for development
 const supportedChains = [sepolia, polygonMumbai, goerli];
@@ -59,33 +49,12 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   providers
 );
 
-// Configure wallet connectors with improved error handling
+// Configure wallet connectors - use basic connectors for security
 let connectors;
-let walletConnectConfigured = false;
 
-try {
-  // Validate WalletConnect project ID
-  const isWalletConnectValid = walletConnectProjectId && 
-    walletConnectProjectId !== 'your_walletconnect_project_id_here' &&
-    walletConnectProjectId !== 'demo' &&
-    walletConnectProjectId !== '' &&
-    walletConnectProjectId.length >= 32;
-
-  if (isWalletConnectValid) {
-    console.log('✅ WalletConnect configured with project ID:', walletConnectProjectId.slice(0, 8) + '...');
-    const { connectors: defaultConnectors } = getDefaultWallets({
-      appName: 'SoulCred',
-      projectId: walletConnectProjectId,
-      chains,
-    });
-    connectors = defaultConnectors;
-    walletConnectConfigured = true;
-  } else {
-    console.warn('⚠️ WalletConnect not properly configured. Using fallback connectors.');
-    throw new Error('WalletConnect not configured');
-  }
-} catch (error) {
-  console.log('🔄 Using fallback wallet connectors (MetaMask + Injected)');
+// For production, use basic connectors to avoid exposing WalletConnect project ID
+if (isClientSide || !walletConnectProjectId || walletConnectProjectId === 'your_walletconnect_project_id_here') {
+  console.log('🔄 Using secure wallet connectors (MetaMask + Injected)');
   connectors = [
     new MetaMaskConnector({ 
       chains,
@@ -102,7 +71,23 @@ try {
       },
     }),
   ];
-  walletConnectConfigured = false;
+} else {
+  // Only use WalletConnect on server-side during development
+  try {
+    const { connectors: defaultConnectors } = getDefaultWallets({
+      appName: 'SoulCred',
+      projectId: walletConnectProjectId,
+      chains,
+    });
+    connectors = defaultConnectors;
+    console.log('✅ WalletConnect configured (development)');
+  } catch (error) {
+    console.log('🔄 Falling back to basic connectors');
+    connectors = [
+      new MetaMaskConnector({ chains }),
+      new InjectedConnector({ chains }),
+    ];
+  }
 }
 
 export const wagmiConfig = createConfig({
@@ -123,29 +108,29 @@ export const CONTRACT_ADDRESSES = {
   [goerli.id]: null, // Set after testnet deployment
 } as const;
 
-// IPFS Configuration with validation
+// IPFS Configuration - no sensitive data exposed
 export const IPFS_CONFIG = {
-  pinataApiKey: import.meta.env.VITE_PINATA_API_KEY,
-  pinataSecretKey: import.meta.env.VITE_PINATA_SECRET_KEY,
-  pinataJWT: import.meta.env.VITE_PINATA_JWT,
   gateway: 'https://gateway.pinata.cloud/ipfs/',
+  // API keys handled server-side only
 };
 
 // Default network for development
 export const DEFAULT_CHAIN = sepolia;
 
-// Helper functions with improved validation
+// Helper functions
 export const isBlockchainConfigured = () => {
-  return isValidApiKey(alchemyApiKey) || isValidApiKey(infuraApiKey);
+  // Always return true for client-side since we use public providers
+  return true;
 };
 
 export const isWalletConnectConfigured = () => {
-  return walletConnectConfigured;
+  // Return false for client-side to use basic connectors
+  return false;
 };
 
 export const isIPFSConfigured = () => {
-  const jwt = IPFS_CONFIG.pinataJWT;
-  return !!(jwt && jwt !== 'your_pinata_jwt_here' && jwt !== '' && jwt.length > 50);
+  // Check if IPFS service is available via serverless function
+  return true; // Will be validated when actually used
 };
 
 export const isContractDeployed = (chainId: number) => {
@@ -163,11 +148,9 @@ export const getContractAddress = (chainId: number) => {
 
 export const getConfigurationStatus = () => {
   return {
-    walletConnect: walletConnectConfigured,
-    alchemy: isValidApiKey(alchemyApiKey),
-    infura: isValidApiKey(infuraApiKey),
-    pinata: isIPFSConfigured(),
-    blockchain: isBlockchainConfigured(),
+    walletConnect: false, // Disabled for security
+    blockchain: true, // Using public providers
+    pinata: true, // Handled server-side
     environment: import.meta.env.MODE,
     production: import.meta.env.PROD,
   };
@@ -180,41 +163,31 @@ export const getNetworkConfig = (chainId: number) => {
       name: 'Ethereum Mainnet',
       currency: 'ETH',
       explorerUrl: 'https://etherscan.io',
-      rpcUrl: isValidApiKey(alchemyApiKey) 
-        ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
-        : 'https://cloudflare-eth.com',
+      rpcUrl: 'https://cloudflare-eth.com',
     },
     [polygon.id]: {
       name: 'Polygon',
       currency: 'MATIC',
       explorerUrl: 'https://polygonscan.com',
-      rpcUrl: isValidApiKey(alchemyApiKey)
-        ? `https://polygon-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
-        : 'https://polygon-rpc.com',
+      rpcUrl: 'https://polygon-rpc.com',
     },
     [sepolia.id]: {
       name: 'Sepolia Testnet',
       currency: 'ETH',
       explorerUrl: 'https://sepolia.etherscan.io',
-      rpcUrl: isValidApiKey(alchemyApiKey)
-        ? `https://eth-sepolia.g.alchemy.com/v2/${alchemyApiKey}`
-        : 'https://rpc.sepolia.org',
+      rpcUrl: 'https://rpc.sepolia.org',
     },
     [polygonMumbai.id]: {
       name: 'Polygon Mumbai',
       currency: 'MATIC',
       explorerUrl: 'https://mumbai.polygonscan.com',
-      rpcUrl: isValidApiKey(alchemyApiKey)
-        ? `https://polygon-mumbai.g.alchemy.com/v2/${alchemyApiKey}`
-        : 'https://rpc-mumbai.maticvigil.com',
+      rpcUrl: 'https://rpc-mumbai.maticvigil.com',
     },
     [goerli.id]: {
       name: 'Goerli Testnet',
       currency: 'ETH',
       explorerUrl: 'https://goerli.etherscan.io',
-      rpcUrl: isValidApiKey(alchemyApiKey)
-        ? `https://eth-goerli.g.alchemy.com/v2/${alchemyApiKey}`
-        : 'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+      rpcUrl: 'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
     },
   };
 

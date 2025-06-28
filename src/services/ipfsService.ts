@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { IPFS_CONFIG } from '../config/blockchain';
 
 export interface IPFSUploadResult {
   ipfsHash: string;
@@ -13,32 +12,22 @@ export interface IPFSUploadOptions {
 }
 
 export class IPFSService {
-  private isConfigured: boolean;
-
   constructor() {
-    this.isConfigured = this.validateConfiguration();
-  }
-
-  private validateConfiguration(): boolean {
-    const jwt = IPFS_CONFIG.pinataJWT;
-    return !!(jwt && jwt !== 'your_pinata_jwt_here' && jwt !== '' && jwt.length > 50);
+    // No sensitive configuration stored client-side
   }
 
   /**
-   * Check if IPFS service is properly configured
+   * Check if IPFS service is available
    */
   isReady(): boolean {
-    return this.isConfigured;
+    // Always return true - actual validation happens server-side
+    return true;
   }
 
   /**
    * Upload file to IPFS via Netlify Function
    */
   async uploadFile(file: File, options?: IPFSUploadOptions): Promise<IPFSUploadResult> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured. Please set PINATA_JWT environment variable.');
-    }
-
     // Validate file
     if (!file || file.size === 0) {
       throw new Error('Invalid file provided');
@@ -105,10 +94,6 @@ export class IPFSService {
    * Upload JSON metadata to IPFS via Netlify Function
    */
   async uploadJSON(data: any, name?: string): Promise<IPFSUploadResult> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured. Please set PINATA_JWT environment variable.');
-    }
-
     // Validate data
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid JSON data provided');
@@ -174,7 +159,7 @@ export class IPFSService {
       name: credentialData.title,
       description: credentialData.description,
       image: imageUrl,
-      external_url: 'https://soulcred.app',
+      external_url: 'https://soulcred-dapp.netlify.app',
       animation_url: null,
       attributes: [
         {
@@ -271,11 +256,6 @@ export class IPFSService {
    * Test IPFS connection
    */
   async testConnection(): Promise<boolean> {
-    if (!this.isConfigured) {
-      console.warn('IPFS service not configured');
-      return false;
-    }
-
     try {
       const testData = { 
         test: true, 

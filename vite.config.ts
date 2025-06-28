@@ -31,6 +31,10 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    // Only expose non-sensitive environment variables
+    'import.meta.env.VITE_APP_NAME': JSON.stringify('SoulCred'),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify('1.0.0'),
+    'import.meta.env.VITE_ENABLE_MAINNET': JSON.stringify(process.env.VITE_ENABLE_MAINNET || 'false'),
   },
   server: {
     port: 5173,
