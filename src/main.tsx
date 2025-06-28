@@ -63,9 +63,6 @@ createRoot(document.getElementById('root')!).render(
           }}
           appInfo={{
             appName: 'SoulCred',
-            appDescription: 'Decentralized platform for issuing and managing Soulbound Tokens that represent learning achievements and community contributions.',
-            appUrl: 'https://soulcred.app',
-            appIcon: '/vite.svg',
             learnMoreUrl: 'https://ethereum.org/en/wallets/',
           }}
           modalSize="compact"

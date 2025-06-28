@@ -68,7 +68,7 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
 ## 🚀 Demo & Usage
 
 ### Live Demo
-- **URL**: [https://soulcred-demo.netlify.app](https://soulcred-demo.netlify.app)
+- **URL**: [https://soulcred-dapp.netlify.app/](https://soulcred-dapp.netlify.app/)
 - **Test Network**: Sepolia Testnet
 - **Wallet**: MetaMask required
 
@@ -186,14 +186,14 @@ Pre-populated with sample data to showcase:
 
 ## 📞 Team & Contact
 
-### Built by
+### Built by Daniela Silvana Tochi
 **Solo Developer** - Passionate about Web3 education and decentralized systems
 
 ### Contact Information
-- **GitHub**: [github.com/yourusername/soulcred](https://github.com/yourusername/soulcred)
-- **Demo**: [soulcred-demo.netlify.app](https://soulcred-demo.netlify.app)
-- **Email**: developer@soulcred.app
-- **Twitter**: [@SoulCredApp](https://twitter.com/SoulCredApp)
+- **GitHub**: [github.com/danielas-tochi/soulcred](https://github.com/danielas-tochi/soulcred-dapp)
+- **Demo**: [https://soulcred-dapp.netlify.app/](https://soulcred-dapp.netlify.app/)
+- **Email**: danielastochi@gmail.com
+- **Future deploy**: https://soulcred.xyz
 
 ### Acknowledgments
 - **Bolt.new** for the amazing development platform
