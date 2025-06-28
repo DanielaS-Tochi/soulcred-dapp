@@ -41,12 +41,12 @@
     "clean": "rm -rf dist node_modules/.vite",
     "prepare": "husky install || true",
     "postbuild": "echo 'Build completed successfully for SoulCred dApp'",
-    "hardhat:compile": "hardhat compile",
-    "hardhat:deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "hardhat:deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
-    "hardhat:deploy:goerli": "hardhat run scripts/deploy.js --network goerli",
-    "hardhat:verify": "hardhat run scripts/verify.js --network sepolia",
-    "hardhat:test-contract": "hardhat run scripts/test-contract.js --network sepolia"
+    "hardhat:compile": "npx hardhat compile",
+    "hardhat:deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "hardhat:deploy:mumbai": "npx hardhat run scripts/deploy.js --network mumbai",
+    "hardhat:deploy:goerli": "npx hardhat run scripts/deploy.js --network goerli",
+    "hardhat:verify": "npx hardhat run scripts/verify.js --network sepolia",
+    "hardhat:test-contract": "npx hardhat run scripts/test-contract.js --network sepolia"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^1.3.5",
