@@ -29,8 +29,3 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 # Environment variables will be set in Netlify dashboard:
-# VITE_ALCHEMY_API_KEY = DB_ZNWS2fkSlNmPDc3TJy
-# VITE_WALLETCONNECT_PROJECT_ID = eb6d593096bfa3db583f2971a575d33e
-# VITE_PINATA_API_KEY = (your Pinata API key)
-# VITE_PINATA_SECRET_KEY = (your Pinata secret)
-# VITE_PINATA_JWT = (your Pinata JWT)
