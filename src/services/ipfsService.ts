@@ -13,14 +13,10 @@ export interface IPFSUploadOptions {
 }
 
 export class IPFSService {
-  private pinataApiKey: string;
-  private pinataSecretKey: string;
   private pinataJWT: string;
   private isConfigured: boolean;
 
   constructor() {
-    this.pinataApiKey = IPFS_CONFIG.pinataApiKey || '';
-    this.pinataSecretKey = IPFS_CONFIG.pinataSecretKey || '';
     this.pinataJWT = IPFS_CONFIG.pinataJWT || '';
     this.isConfigured = this.validateConfiguration();
   }
@@ -37,29 +33,22 @@ export class IPFSService {
   }
 
   /**
-   * Upload file to IPFS via Pinata with retry logic
+   * Upload file to IPFS via Netlify Function (no expone JWT)
    */
   async uploadFile(file: File, options?: IPFSUploadOptions): Promise<IPFSUploadResult> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured. Please set up Pinata credentials.');
-    }
-
-    // Validate file
+    // Validaciones locales
     if (!file || file.size === 0) {
       throw new Error('Invalid file provided');
     }
-
-    // Check file size (max 100MB)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
       throw new Error('File size exceeds 100MB limit');
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
+    // Prepara metadata si es necesario
+    let metadata = undefined;
     if (options) {
-      const metadata = {
+      metadata = {
         name: options.name || file.name,
         keyvalues: {
           ...options.keyvalues,
@@ -68,66 +57,48 @@ export class IPFSService {
           fileType: file.type,
         }
       };
-      formData.append('pinataMetadata', JSON.stringify(metadata));
     }
 
-    // Add pinning options for better performance
-    const pinataOptions = {
-      cidVersion: 1,
-      customPinPolicy: {
-        regions: [
-          { id: 'FRA1', desiredReplicationCount: 1 },
-          { id: 'NYC1', desiredReplicationCount: 1 }
-        ]
-      }
-    };
-    formData.append('pinataOptions', JSON.stringify(pinataOptions));
-
-    try {
-      const response = await this.retryRequest(() =>
-        axios.post(
-          'https://api.pinata.cloud/pinning/pinFileToIPFS',
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${this.pinataJWT}`,
-            },
-            timeout: 60000, // 60 second timeout
+    // Lee el archivo como base64 y llama a la función serverless
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1];
+          const response = await fetch('/.netlify/functions/uploadToPinata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: base64,
+              fileName: file.name,
+              metadata,
+            }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to upload file to IPFS');
           }
-        )
-      );
-
-      const ipfsHash = response.data.IpfsHash;
-      return {
-        ipfsHash,
-        pinataUrl: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-        gatewayUrl: `${IPFS_CONFIG.gateway}${ipfsHash}`,
-      };
-    } catch (error) {
-      console.error('IPFS file upload error:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401) {
-          throw new Error('Invalid Pinata credentials');
-        } else if (error.response?.status === 413) {
-          throw new Error('File too large for upload');
-        } else if (error.code === 'ECONNABORTED') {
-          throw new Error('Upload timeout - please try again');
+          const data = await response.json();
+          // Ajusta el resultado para que coincida con IPFSUploadResult
+          resolve({
+            ipfsHash: data.IpfsHash || data.ipfsHash,
+            pinataUrl: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash || data.ipfsHash}`,
+            gatewayUrl: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash || data.ipfsHash}`,
+          });
+        } catch (err) {
+          reject(err);
         }
-      }
-      throw new Error('Failed to upload file to IPFS');
-    }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   /**
-   * Upload JSON metadata to IPFS with validation
+   * Upload JSON metadata to IPFS via Netlify Function (no expone JWT)
    */
   async uploadJSON(data: any, name?: string): Promise<IPFSUploadResult> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured. Please set up Pinata credentials.');
-    }
-
-    // Validate JSON data
+    // Validaciones locales
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid JSON data provided');
     }
@@ -148,51 +119,27 @@ export class IPFSService {
       }
     };
 
-    const requestData = {
-      pinataContent: data,
-      pinataMetadata: metadata,
-      pinataOptions: {
-        cidVersion: 1,
-        customPinPolicy: {
-          regions: [
-            { id: 'FRA1', desiredReplicationCount: 1 },
-            { id: 'NYC1', desiredReplicationCount: 1 }
-          ]
-        }
-      }
-    };
-
     try {
-      const response = await this.retryRequest(() =>
-        axios.post(
-          'https://api.pinata.cloud/pinning/pinJSONToIPFS',
-          requestData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.pinataJWT}`,
-            },
-            timeout: 30000, // 30 second timeout
-          }
-        )
-      );
-
-      const ipfsHash = response.data.IpfsHash;
-      return {
-        ipfsHash,
-        pinataUrl: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-        gatewayUrl: `${IPFS_CONFIG.gateway}${ipfsHash}`,
-      };
-    } catch (error) {
-      console.error('IPFS JSON upload error:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401) {
-          throw new Error('Invalid Pinata credentials');
-        } else if (error.code === 'ECONNABORTED') {
-          throw new Error('Upload timeout - please try again');
-        }
+      const response = await fetch('/.netlify/functions/uploadToPinata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: data,
+          metadata,
+        }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload JSON to IPFS');
       }
-      throw new Error('Failed to upload JSON to IPFS');
+      const result = await response.json();
+      return {
+        ipfsHash: result.IpfsHash || result.ipfsHash,
+        pinataUrl: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash || result.ipfsHash}`,
+        gatewayUrl: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash || result.ipfsHash}`,
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to upload JSON to IPFS');
     }
   }
 
@@ -273,40 +220,6 @@ export class IPFSService {
     }
 
     return metadata;
-  }
-
-  /**
-   * Retry request with exponential backoff
-   */
-  private async retryRequest<T>(
-    requestFn: () => Promise<T>,
-    maxRetries: number = 3,
-    baseDelay: number = 1000
-  ): Promise<T> {
-    let lastError: Error;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await requestFn();
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt === maxRetries) {
-          break;
-        }
-
-        // Don't retry on authentication errors
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          break;
-        }
-
-        // Exponential backoff
-        const delay = baseDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-
-    throw lastError!;
   }
 
   /**
