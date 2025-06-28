@@ -26,6 +26,9 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
     mapping(uint256 => mapping(address => bool)) public endorsements;
     mapping(uint256 => uint256) public endorsementCounts;
     
+    // Flag to track if a recovery is in progress
+    bool private _recoveryInProgress;
+    
     struct CredentialData {
         string title;
         string category;
@@ -112,6 +115,7 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
     
     /**
      * @dev Override transfer functions to make tokens soulbound
+     * Allow transfers only for minting, burning, or owner recovery
      */
     function _beforeTokenTransfer(
         address from,
@@ -119,8 +123,20 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
         uint256 tokenId,
         uint256 batchSize
     ) internal override {
-        require(from == address(0) || to == address(0), "Soulbound: Transfer not allowed");
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        // Allow minting (from zero address) and burning (to zero address)
+        if (from == address(0) || to == address(0)) {
+            super._beforeTokenTransfer(from, to, tokenId, batchSize);
+            return;
+        }
+        
+        // Allow owner to perform recovery transfers
+        if (_recoveryInProgress && _msgSender() == owner()) {
+            super._beforeTokenTransfer(from, to, tokenId, batchSize);
+            return;
+        }
+        
+        // Block all other transfers (soulbound behavior)
+        revert("Soulbound: Transfer not allowed");
     }
     
     /**
@@ -142,8 +158,14 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
             }
         }
         
+        // Set recovery flag to allow transfer
+        _recoveryInProgress = true;
+        
         // Transfer token
         _transfer(currentOwner, newOwner, tokenId);
+        
+        // Reset recovery flag
+        _recoveryInProgress = false;
         
         // Add to new owner's tokens
         userTokens[newOwner].push(tokenId);
