@@ -3,6 +3,7 @@
 ![SoulCred Logo](https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=600&h=400)
 
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/danielas-tochi/soulcred-dapp)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-soulcred--dapp.netlify.app-brightgreen)](https://soulcred-dapp.netlify.app)
 [![GitHub Actions](https://github.com/danielas-tochi/soulcred-dapp/workflows/Deploy%20to%20Netlify/badge.svg)](https://github.com/danielas-tochi/soulcred-dapp/actions)
 
 SoulCred is a decentralized platform for issuing and managing Soulbound Tokens (SBTs) that represent learning achievements and community contributions. Built with React, TypeScript, and Web3 technologies, it provides a secure, transparent, and permanent way to showcase your skills and accomplishments.
@@ -10,7 +11,7 @@ SoulCred is a decentralized platform for issuing and managing Soulbound Tokens (
 ## 🚀 Live Demo
 
 - **Production**: [https://soulcred-dapp.netlify.app](https://soulcred-dapp.netlify.app)
-- **Development**: Auto-deployed from pull requests
+- **Status**: ✅ Deployed and running on Netlify
 
 ## 🌟 Features
 
@@ -22,7 +23,7 @@ SoulCred is a decentralized platform for issuing and managing Soulbound Tokens (
 - **Dynamic Data Visualization**: Interactive charts showing learning progress and achievements
 
 ### User Experience
-- **Wallet Integration**: Seamless connection with MetaMask and other Web3 wallets
+- **Wallet Integration**: Seamless connection with MetaMask and other Web3 wallets via RainbowKit
 - **Responsive Design**: Mobile-first approach with dark/light theme support
 - **File Upload**: Drag-and-drop evidence upload with IPFS integration
 - **Real-time Updates**: Live blockchain transaction status and confirmations
@@ -59,10 +60,18 @@ SoulCred is a decentralized platform for issuing and managing Soulbound Tokens (
    cp .env.example .env
    ```
    
-   Fill in your API keys:
-   - **Alchemy/Infura**: For blockchain RPC access
-   - **WalletConnect**: For wallet connection
-   - **Pinata**: For IPFS storage
+   Fill in your API keys in the `.env` file:
+   ```env
+   # Required for blockchain connectivity
+   VITE_ALCHEMY_API_KEY=your_alchemy_api_key_here
+   VITE_INFURA_API_KEY=your_infura_api_key_here
+   
+   # Optional but recommended for mobile wallet support
+   VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
+   
+   # Required for file uploads to IPFS
+   VITE_PINATA_JWT=your_pinata_jwt_here
+   ```
 
 4. **Start development server**
    ```bash
@@ -74,28 +83,30 @@ SoulCred is a decentralized platform for issuing and managing Soulbound Tokens (
 
 ## 🔧 Configuration
 
-### Environment Variables
-
-Create a `.env` file with the following variables:
-
-```env
-# Blockchain Configuration
-VITE_ALCHEMY_API_KEY=your_alchemy_api_key
-VITE_INFURA_API_KEY=your_infura_api_key_here
-VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-
-# IPFS Configuration (Pinata)
-VITE_PINATA_API_KEY=your_pinata_api_key_here
-VITE_PINATA_SECRET_KEY=your_pinata_secret_key_here
-VITE_PINATA_JWT=your_pinata_jwt_here
-```
-
 ### Getting API Keys
 
-1. **Alchemy**: Sign up at [alchemy.com](https://alchemy.com) and create an app
-2. **Infura**: Register at [infura.io](https://infura.io) and create a project
-3. **WalletConnect**: Get a project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
-4. **Pinata**: Create account at [pinata.cloud](https://pinata.cloud) and generate API keys
+1. **Alchemy**: 
+   - Sign up at [alchemy.com](https://alchemy.com)
+   - Create an app and copy the API key
+
+2. **Infura** (Alternative to Alchemy):
+   - Register at [infura.io](https://infura.io)
+   - Create a project and copy the API key
+
+3. **WalletConnect** (Optional):
+   - Get a project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
+   - Enables mobile wallet support and QR code connections
+
+4. **Pinata** (Required for file uploads):
+   - Create account at [pinata.cloud](https://pinata.cloud)
+   - Generate a JWT token from the API Keys section
+
+### Environment Variables
+
+The application will work with minimal configuration:
+- **Minimum**: At least one blockchain provider (Alchemy or Infura)
+- **Recommended**: Add WalletConnect for better wallet support
+- **Full Features**: Add Pinata JWT for file upload functionality
 
 ## 🚀 Deployment
 
@@ -104,6 +115,7 @@ VITE_PINATA_JWT=your_pinata_jwt_here
 This project is configured for automatic deployment to Netlify:
 
 1. **Fork or clone this repository**
+
 2. **Connect to Netlify**:
    - Go to [Netlify](https://netlify.com)
    - Click "New site from Git"
@@ -112,14 +124,13 @@ This project is configured for automatic deployment to Netlify:
 
 3. **Set Environment Variables in Netlify**:
    - Go to Site Settings > Environment Variables
-   - Add the following variables:
-   ```
-   VITE_ALCHEMY_API_KEY = 
-   VITE_WALLETCONNECT_PROJECT_ID = 
-   VITE_PINATA_API_KEY = (your Pinata API key)
-   VITE_PINATA_SECRET_KEY = (your Pinata secret)
-   VITE_PINATA_JWT = (your Pinata JWT)
-   ```
+   - Add your API keys:
+     ```
+     VITE_ALCHEMY_API_KEY = your_alchemy_api_key
+     VITE_WALLETCONNECT_PROJECT_ID = your_walletconnect_project_id
+     VITE_PINATA_JWT = your_pinata_jwt
+     PINATA_JWT = your_pinata_jwt (for serverless functions)
+     ```
 
 4. **Deploy**:
    - Push to `main` branch to trigger production deployment
@@ -165,17 +176,6 @@ netlify deploy --prod --dir=dist
 
 ## 🏗️ Architecture
 
-### Smart Contract
-```solidity
-// SoulCredSBT.sol - Main contract for SBT functionality
-contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
-    // Soulbound token implementation
-    // Credential data storage
-    // Endorsement system
-    // Recovery mechanisms
-}
-```
-
 ### Frontend Stack
 - **React 18**: Modern React with hooks and concurrent features
 - **TypeScript**: Full type safety and IntelliSense
@@ -191,6 +191,17 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
 - **MetaMask**: Primary wallet integration
 - **Multiple Networks**: Sepolia, Goerli, Polygon Mumbai support
 
+### Smart Contract
+```solidity
+// SoulCredSBT.sol - Main contract for SBT functionality
+contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
+    // Soulbound token implementation
+    // Credential data storage
+    // Endorsement system
+    // Recovery mechanisms
+}
+```
+
 ## 🧪 Testing
 
 ### Running Tests
@@ -205,12 +216,14 @@ npm run test:watch
 npm run test:coverage
 ```
 
-### Test Coverage
-- Smart contract functionality
-- IPFS upload/retrieval
-- Wallet connection flows
-- UI component interactions
-- Form validation logic
+### Manual Testing Checklist
+- [ ] Wallet connection works with MetaMask
+- [ ] Can navigate between all views
+- [ ] Credential minting form validation works
+- [ ] File upload works (if Pinata configured)
+- [ ] Responsive design on mobile devices
+- [ ] Dark/light theme toggle works
+- [ ] Error handling displays properly
 
 ## 🤝 Contributing
 
@@ -245,31 +258,55 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [docs.soulcred.app](https://docs.soulcred.app)
+- **Live Demo**: [soulcred-dapp.netlify.app](https://soulcred-dapp.netlify.app)
 - **Issues**: [GitHub Issues](https://github.com/danielas-tochi/soulcred-dapp/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/danielas-tochi/soulcred-dapp/discussions)
 - **Email**: support@soulcred.app
 
 ## 🗺️ Roadmap
 
-### Phase 1 (Current)
-- ✅ Basic SBT minting
-- ✅ IPFS integration
-- ✅ Wallet connection
-- ✅ Responsive UI
-- ✅ Netlify deployment
+### Phase 1 (Current) ✅
+- ✅ Basic SBT minting interface
+- ✅ IPFS integration for file storage
+- ✅ Wallet connection with RainbowKit
+- ✅ Responsive UI with dark/light themes
+- ✅ Netlify deployment with serverless functions
 
 ### Phase 2 (Next)
-- 🔄 Multi-chain deployment
+- 🔄 Smart contract deployment to testnets
+- 🔄 Real blockchain integration
 - 🔄 Advanced endorsement system
 - 🔄 Credential verification API
-- 🔄 Mobile app development
 
 ### Phase 3 (Future)
+- 📋 Multi-chain deployment
 - 📋 DAO governance
-- 📋 Credential marketplace
-- 📋 Integration partnerships
+- 📋 Mobile app development
 - 📋 Enterprise solutions
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Wallet won't connect**
+   - Ensure MetaMask is installed and unlocked
+   - Check that you're on a supported network
+   - Try refreshing the page
+
+2. **File upload fails**
+   - Verify PINATA_JWT is set in environment variables
+   - Check file size (max 10MB)
+   - Ensure file type is supported
+
+3. **Build fails**
+   - Run `npm install` to ensure dependencies are installed
+   - Check Node.js version (requires 18+)
+   - Clear cache with `npm run clean`
+
+4. **Environment variables not working**
+   - Ensure variables start with `VITE_` for client-side access
+   - Restart development server after changing `.env`
+   - Check for typos in variable names
 
 ---
 

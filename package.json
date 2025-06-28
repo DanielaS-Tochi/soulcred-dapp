@@ -6,7 +6,7 @@
   "description": "Decentralized platform for issuing and managing Soulbound Tokens representing learning achievements",
   "author": "Daniela Silvana Tochi",
   "license": "MIT",
-  "homepage": "https://soulcred.app",
+  "homepage": "https://soulcred-dapp.netlify.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/danielas-tochi/soulcred-dapp.git"
@@ -39,7 +39,8 @@
     "deploy:netlify": "netlify deploy --prod --dir=dist",
     "analyze": "npx vite-bundle-analyzer dist/stats.html",
     "clean": "rm -rf dist node_modules/.vite",
-    "prepare": "husky install || true"
+    "prepare": "husky install || true",
+    "postbuild": "echo 'Build completed successfully for SoulCred dApp'"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^1.3.5",
@@ -47,7 +48,9 @@
     "@wagmi/core": "^1.4.12",
     "axios": "^1.6.2",
     "ethers": "^5.7.2",
+    "form-data": "^4.0.0",
     "lucide-react": "^0.344.0",
+    "node-fetch": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.3",
@@ -57,6 +60,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/node": "^20.11.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

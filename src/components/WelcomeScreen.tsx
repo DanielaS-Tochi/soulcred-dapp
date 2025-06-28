@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Wallet, Award, Users, Shield, ArrowRight, AlertCircle, RefreshCw, ExternalLink, X, Download } from 'lucide-react';
+import { Wallet, Award, Users, Shield, ArrowRight, AlertCircle, RefreshCw, ExternalLink, X, Download, CheckCircle } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { getConfigurationStatus } from '../config/blockchain';
 import AnimatedLogo from './ui/AnimatedLogo';
 import UserProfileCard from './ui/UserProfileCard';
 import { mockUsers } from '../data/mockData';
@@ -11,6 +12,9 @@ const WelcomeScreen: React.FC = () => {
   const { isConnecting, connectionError, clearError } = useAuth();
   const { theme } = useTheme();
   const [showWalletHelp, setShowWalletHelp] = useState(false);
+  const [showConfigStatus, setShowConfigStatus] = useState(false);
+
+  const configStatus = getConfigurationStatus();
 
   const features = [
     {
@@ -98,6 +102,59 @@ const WelcomeScreen: React.FC = () => {
             The decentralized platform for issuing and managing Soulbound Tokens that represent 
             your learning achievements, skills, and community contributions.
           </p>
+
+          {/* Configuration Status */}
+          <div className="mb-8">
+            <button
+              onClick={() => setShowConfigStatus(!showConfigStatus)}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm"
+            >
+              <span>System Status</span>
+              {configStatus.blockchain && configStatus.pinata ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
+              )}
+            </button>
+
+            {showConfigStatus && (
+              <div className="mt-4 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Configuration Status</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Blockchain RPC</span>
+                    {configStatus.blockchain ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>WalletConnect</span>
+                    {configStatus.walletConnect ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>IPFS Storage</span>
+                    {configStatus.pinata ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Environment: {configStatus.environment} | 
+                    {configStatus.production ? ' Production' : ' Development'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Connection Section */}
           <div className="flex flex-col items-center space-y-6 mb-8">

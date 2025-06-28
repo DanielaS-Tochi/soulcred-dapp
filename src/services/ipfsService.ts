@@ -13,16 +13,15 @@ export interface IPFSUploadOptions {
 }
 
 export class IPFSService {
-  private pinataJWT: string;
   private isConfigured: boolean;
 
   constructor() {
-    this.pinataJWT = IPFS_CONFIG.pinataJWT || '';
     this.isConfigured = this.validateConfiguration();
   }
 
   private validateConfiguration(): boolean {
-    return !!(this.pinataJWT && this.pinataJWT !== 'your_pinata_jwt_here');
+    const jwt = IPFS_CONFIG.pinataJWT;
+    return !!(jwt && jwt !== 'your_pinata_jwt_here' && jwt !== '' && jwt.length > 50);
   }
 
   /**
@@ -33,38 +32,42 @@ export class IPFSService {
   }
 
   /**
-   * Upload file to IPFS via Netlify Function (no expone JWT)
+   * Upload file to IPFS via Netlify Function
    */
   async uploadFile(file: File, options?: IPFSUploadOptions): Promise<IPFSUploadResult> {
-    // Validaciones locales
+    if (!this.isConfigured) {
+      throw new Error('IPFS service not configured. Please set PINATA_JWT environment variable.');
+    }
+
+    // Validate file
     if (!file || file.size === 0) {
       throw new Error('Invalid file provided');
     }
+    
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
       throw new Error('File size exceeds 100MB limit');
     }
 
-    // Prepara metadata si es necesario
-    let metadata = undefined;
-    if (options) {
-      metadata = {
-        name: options.name || file.name,
-        keyvalues: {
-          ...options.keyvalues,
-          uploadedAt: new Date().toISOString(),
-          fileSize: file.size.toString(),
-          fileType: file.type,
-        }
-      };
-    }
+    // Prepare metadata
+    const metadata = {
+      name: options?.name || file.name,
+      keyvalues: {
+        ...options?.keyvalues,
+        uploadedAt: new Date().toISOString(),
+        fileSize: file.size.toString(),
+        fileType: file.type,
+        source: 'soulcred-dapp',
+      }
+    };
 
-    // Lee el archivo como base64 y llama a la función serverless
+    // Convert file to base64 and upload via Netlify function
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const base64 = (reader.result as string).split(',')[1];
+          
           const response = await fetch('/.netlify/functions/uploadToPinata', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -74,48 +77,56 @@ export class IPFSService {
               metadata,
             }),
           });
+
           if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Failed to upload file to IPFS');
+            throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
           }
+
           const data = await response.json();
-          // Ajusta el resultado para que coincida con IPFSUploadResult
+          
           resolve({
             ipfsHash: data.IpfsHash || data.ipfsHash,
             pinataUrl: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash || data.ipfsHash}`,
             gatewayUrl: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash || data.ipfsHash}`,
           });
         } catch (err) {
-          reject(err);
+          console.error('File upload error:', err);
+          reject(err instanceof Error ? err : new Error('Failed to upload file'));
         }
       };
-      reader.onerror = reject;
+      
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
   }
 
   /**
-   * Upload JSON metadata to IPFS via Netlify Function (no expone JWT)
+   * Upload JSON metadata to IPFS via Netlify Function
    */
   async uploadJSON(data: any, name?: string): Promise<IPFSUploadResult> {
-    // Validaciones locales
+    if (!this.isConfigured) {
+      throw new Error('IPFS service not configured. Please set PINATA_JWT environment variable.');
+    }
+
+    // Validate data
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid JSON data provided');
     }
 
     try {
-      // Ensure data is serializable
       JSON.stringify(data);
     } catch (error) {
       throw new Error('Data is not valid JSON');
     }
 
     const metadata = {
-      name: name || `metadata-${Date.now()}`,
+      name: name || `soulcred-metadata-${Date.now()}`,
       keyvalues: {
         type: 'metadata',
         uploadedAt: new Date().toISOString(),
         dataType: 'json',
+        source: 'soulcred-dapp',
       }
     };
 
@@ -128,23 +139,27 @@ export class IPFSService {
           metadata,
         }),
       });
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to upload JSON to IPFS');
+        throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
       }
+
       const result = await response.json();
+      
       return {
         ipfsHash: result.IpfsHash || result.ipfsHash,
         pinataUrl: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash || result.ipfsHash}`,
         gatewayUrl: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash || result.ipfsHash}`,
       };
     } catch (error: any) {
+      console.error('JSON upload error:', error);
       throw new Error(error.message || 'Failed to upload JSON to IPFS');
     }
   }
 
   /**
-   * Create NFT metadata following OpenSea standard with validation
+   * Create NFT metadata following OpenSea standard
    */
   createNFTMetadata(credentialData: any, imageUrl: string) {
     if (!credentialData.title) {
@@ -206,6 +221,7 @@ export class IPFSService {
         verified: credentialData.verified || false,
         soulbound: true,
         version: '1.0',
+        platform: 'SoulCred',
       },
     };
 
@@ -230,6 +246,7 @@ export class IPFSService {
       `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
       `https://ipfs.io/ipfs/${ipfsHash}`,
       `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
+      `https://dweb.link/ipfs/${ipfsHash}`,
     ];
 
     let lastError: Error;
@@ -238,7 +255,7 @@ export class IPFSService {
       try {
         const response = await axios.get(gateway, {
           responseType: 'blob',
-          timeout: 10000,
+          timeout: 15000,
         });
         return response.data;
       } catch (error) {
@@ -255,15 +272,21 @@ export class IPFSService {
    */
   async testConnection(): Promise<boolean> {
     if (!this.isConfigured) {
+      console.warn('IPFS service not configured');
       return false;
     }
 
     try {
-      const testData = { test: true, timestamp: Date.now() };
+      const testData = { 
+        test: true, 
+        timestamp: Date.now(),
+        source: 'soulcred-connection-test'
+      };
       await this.uploadJSON(testData, 'connection-test');
+      console.log('✅ IPFS connection test successful');
       return true;
     } catch (error) {
-      console.error('IPFS connection test failed:', error);
+      console.error('❌ IPFS connection test failed:', error);
       return false;
     }
   }
