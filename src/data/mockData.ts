@@ -17,7 +17,7 @@ export const mockUsers: User[] = [
   {
     id: '2',
     address: '0x1234567890abcdef1234567890abcdef12345678',
-    name: 'Sarah Johnson',
+    name: 'Michael Johnson',
     bio: 'UX Designer with 5+ years experience. Focused on creating inclusive and accessible digital experiences.',
     avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1&fit=crop&crop=face',
     skills: ['UI/UX Design', 'Figma', 'User Research', 'Accessibility', 'Design Systems'],
