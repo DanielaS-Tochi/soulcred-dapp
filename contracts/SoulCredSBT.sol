@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/token/ERC721/ERC721.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Counters.sol";
 
 /**
  * @title SoulCredSBT
@@ -63,27 +63,26 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
      * @dev Mint a new credential SBT
      */
     function mintCredential(
-        address to,
-        string memory tokenURI,
-        CredentialData memory credentialData
-    ) public returns (uint256) {
-        require(to != address(0), "Cannot mint to zero address");
-        
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
-        
-        credentialData.recipient = to;
-        credentials[tokenId] = credentialData;
-        userTokens[to].push(tokenId);
-        
-        emit CredentialMinted(tokenId, to, credentialData.title, credentialData.category);
-        
-        return tokenId;
-    }
-    
+    address to,
+    string memory uri,
+    CredentialData memory credentialData
+) public returns (uint256) {
+    require(to != address(0), "Cannot mint to zero address");
+
+    uint256 tokenId = _tokenIdCounter.current();
+    _tokenIdCounter.increment();
+
+    _safeMint(to, tokenId);
+    _setTokenURI(tokenId, uri); // ✅ Uses renamed parameter
+
+    credentialData.recipient = to;
+    credentials[tokenId] = credentialData;
+    userTokens[to].push(tokenId);
+
+    emit CredentialMinted(tokenId, to, credentialData.title, credentialData.category);
+
+    return tokenId;
+}    
     /**
      * @dev Endorse a credential
      */
@@ -123,19 +122,16 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
         uint256 tokenId,
         uint256 batchSize
     ) internal override {
-        // Allow minting (from zero address) and burning (to zero address)
         if (from == address(0) || to == address(0)) {
             super._beforeTokenTransfer(from, to, tokenId, batchSize);
             return;
         }
         
-        // Allow owner to perform recovery transfers
         if (_recoveryInProgress && _msgSender() == owner()) {
             super._beforeTokenTransfer(from, to, tokenId, batchSize);
             return;
         }
         
-        // Block all other transfers (soulbound behavior)
         revert("Soulbound: Transfer not allowed");
     }
     
@@ -148,7 +144,6 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
         
         address currentOwner = ownerOf(tokenId);
         
-        // Remove from current owner's tokens
         uint256[] storage currentTokens = userTokens[currentOwner];
         for (uint256 i = 0; i < currentTokens.length; i++) {
             if (currentTokens[i] == tokenId) {
@@ -158,21 +153,15 @@ contract SoulCredSBT is ERC721, ERC721URIStorage, Ownable {
             }
         }
         
-        // Set recovery flag to allow transfer
         _recoveryInProgress = true;
-        
-        // Transfer token
         _transfer(currentOwner, newOwner, tokenId);
-        
-        // Reset recovery flag
         _recoveryInProgress = false;
         
-        // Add to new owner's tokens
         userTokens[newOwner].push(tokenId);
         credentials[tokenId].recipient = newOwner;
     }
     
-    // Override required functions
+    // Required overrides
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
