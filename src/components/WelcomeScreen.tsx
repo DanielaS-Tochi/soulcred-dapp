@@ -9,7 +9,7 @@ import UserProfileCard from './ui/UserProfileCard';
 import { mockUsers } from '../data/mockData';
 
 const WelcomeScreen: React.FC = () => {
-  const { isConnecting, connectionError, clearError } = useAuth();
+  const { isConnecting, connectionError, clearError, connectWallet } = useAuth();
   const { theme } = useTheme();
   const [showWalletHelp, setShowWalletHelp] = useState(false);
   const [showConfigStatus, setShowConfigStatus] = useState(false);
@@ -80,6 +80,13 @@ const WelcomeScreen: React.FC = () => {
       purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 hover:bg-purple-200 dark:hover:bg-purple-900/50 border-purple-200 dark:border-purple-800'
     };
     return colors[color as keyof typeof colors] || colors.blue;
+  };
+
+  // Test direct connection function
+  const handleDirectConnect = () => {
+    console.log('🔧 Direct connect button clicked');
+    clearError();
+    connectWallet();
   };
 
   return (
@@ -155,101 +162,119 @@ const WelcomeScreen: React.FC = () => {
                 Choose your preferred wallet to get started with SoulCred
               </p>
               
-              {/* RainbowKit Connect Button */}
-              <div className="flex justify-center mb-4">
-                <ConnectButton.Custom>
-                  {({
-                    account,
-                    chain,
-                    openAccountModal,
-                    openChainModal,
-                    openConnectModal,
-                    authenticationStatus,
-                    mounted,
-                  }) => {
-                    const ready = mounted && authenticationStatus !== 'loading';
-                    const connected =
-                      ready &&
-                      account &&
-                      chain &&
-                      (!authenticationStatus ||
-                        authenticationStatus === 'authenticated');
+              {/* Enhanced Connect Button */}
+              <div className="space-y-4">
+                {/* RainbowKit Connect Button */}
+                <div className="flex justify-center">
+                  <ConnectButton.Custom>
+                    {({
+                      account,
+                      chain,
+                      openAccountModal,
+                      openChainModal,
+                      openConnectModal,
+                      authenticationStatus,
+                      mounted,
+                    }) => {
+                      const ready = mounted && authenticationStatus !== 'loading';
+                      const connected =
+                        ready &&
+                        account &&
+                        chain &&
+                        (!authenticationStatus ||
+                          authenticationStatus === 'authenticated');
 
-                    return (
-                      <div
-                        {...(!ready && {
-                          'aria-hidden': true,
-                          'style': {
-                            opacity: 0,
-                            pointerEvents: 'none',
-                            userSelect: 'none',
-                          },
-                        })}
-                        className="w-full"
-                      >
-                        {(() => {
-                          if (!connected) {
-                            return (
-                              <button
-                                onClick={() => {
-                                  clearError();
-                                  openConnectModal();
-                                }}
-                                disabled={isConnecting}
-                                className="flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-purple-400 disabled:to-blue-400 text-white rounded-xl font-semibold text-lg transition-all transform hover:scale-105 disabled:scale-100 shadow-lg w-full disabled:cursor-not-allowed focus:ring-4 focus:ring-purple-500/50"
-                              >
-                                {isConnecting ? (
-                                  <>
-                                    <RefreshCw size={20} className="animate-spin" />
-                                    <span>Connecting...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Wallet size={20} />
-                                    <span>Connect Wallet</span>
-                                    <ArrowRight size={20} />
-                                  </>
-                                )}
-                              </button>
-                            );
-                          }
+                      return (
+                        <div
+                          {...(!ready && {
+                            'aria-hidden': true,
+                            'style': {
+                              opacity: 0,
+                              pointerEvents: 'none',
+                              userSelect: 'none',
+                            },
+                          })}
+                          className="w-full"
+                        >
+                          {(() => {
+                            if (!connected) {
+                              return (
+                                <button
+                                  onClick={() => {
+                                    console.log('🔧 RainbowKit connect button clicked');
+                                    clearError();
+                                    openConnectModal();
+                                  }}
+                                  disabled={isConnecting}
+                                  className="flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-purple-400 disabled:to-blue-400 text-white rounded-xl font-semibold text-lg transition-all transform hover:scale-105 disabled:scale-100 shadow-lg w-full disabled:cursor-not-allowed focus:ring-4 focus:ring-purple-500/50"
+                                >
+                                  {isConnecting ? (
+                                    <>
+                                      <RefreshCw size={20} className="animate-spin" />
+                                      <span>Connecting...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Wallet size={20} />
+                                      <span>Connect Wallet</span>
+                                      <ArrowRight size={20} />
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            }
 
-                          if (chain?.unsupported) {
-                            return (
-                              <button
-                                onClick={openChainModal}
-                                className="flex items-center justify-center space-x-2 px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-lg transition-all shadow-lg w-full focus:ring-4 focus:ring-red-500/50"
-                              >
-                                <AlertCircle size={20} />
-                                <span>Wrong Network</span>
-                              </button>
-                            );
-                          }
-
-                          return (
-                            <div className="flex flex-col space-y-3">
-                              <button
-                                onClick={openAccountModal}
-                                className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all shadow-md focus:ring-4 focus:ring-green-500/50"
-                              >
-                                <span>Connected: {account.displayName}</span>
-                              </button>
-                              
-                              {chain && (
+                            if (chain?.unsupported) {
+                              return (
                                 <button
                                   onClick={openChainModal}
-                                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:ring-4 focus:ring-gray-500/50"
+                                  className="flex items-center justify-center space-x-2 px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-lg transition-all shadow-lg w-full focus:ring-4 focus:ring-red-500/50"
                                 >
-                                  <span>Network: {chain.name}</span>
+                                  <AlertCircle size={20} />
+                                  <span>Wrong Network</span>
                                 </button>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  }}
-                </ConnectButton.Custom>
+                              );
+                            }
+
+                            return (
+                              <div className="flex flex-col space-y-3">
+                                <button
+                                  onClick={openAccountModal}
+                                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all shadow-md focus:ring-4 focus:ring-green-500/50"
+                                >
+                                  <span>Connected: {account.displayName}</span>
+                                </button>
+                                
+                                {chain && (
+                                  <button
+                                    onClick={openChainModal}
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:ring-4 focus:ring-gray-500/50"
+                                  >
+                                    <span>Network: {chain.name}</span>
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      );
+                    }}
+                  </ConnectButton.Custom>
+                </div>
+
+                {/* Fallback Direct Connect Button */}
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Having trouble? Try direct connection:
+                  </p>
+                  <button
+                    onClick={handleDirectConnect}
+                    disabled={isConnecting}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                  >
+                    {isConnecting ? 'Connecting...' : 'Direct Connect'}
+                  </button>
+                </div>
               </div>
 
               {/* New to Ethereum Wallets Section */}

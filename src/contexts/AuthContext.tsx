@@ -54,6 +54,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ready: c.ready,
       id: c.id 
     })));
+
+    // Test MetaMask detection
+    console.log('🦊 MetaMask detection:', {
+      windowEthereum: !!window.ethereum,
+      isMetaMask: !!(window.ethereum as any)?.isMetaMask,
+      provider: window.ethereum ? 'Available' : 'Not found'
+    });
   }, [connectors]);
 
   // Create wallet state
@@ -69,11 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setConnectionError(null);
   };
 
-  // Connect wallet function with improved error handling
+  // Enhanced connect wallet function
   const connectWallet = () => {
     setConnectionError(null);
     
     try {
+      console.log('🚀 Attempting wallet connection...');
       console.log('🔌 Available connectors:', connectors.map(c => ({ 
         name: c.name, 
         ready: c.ready,
@@ -89,14 +97,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
       const anyReadyConnector = connectors.find(c => c.ready);
       
-      const connector = metaMaskConnector || injectedConnector || anyReadyConnector || connectors[0];
+      const connector = metaMaskConnector || injectedConnector || anyReadyConnector;
       
       if (!connector) {
+        console.error('❌ No wallet connector available');
         setConnectionError('No wallet connector available. Please install MetaMask or another Web3 wallet.');
         return;
       }
 
-      console.log('🚀 Attempting to connect with:', connector.name);
+      console.log('🚀 Connecting with:', {
+        name: connector.name,
+        id: connector.id,
+        ready: connector.ready
+      });
+
+      // Attempt connection
       connect({ connector });
     } catch (error) {
       console.error('❌ Connection error:', error);
