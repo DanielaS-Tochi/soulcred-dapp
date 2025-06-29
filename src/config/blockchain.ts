@@ -7,33 +7,35 @@ import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 
-// Get API keys from environment variables - these will be undefined in production build
-const alchemyApiKey = typeof window === 'undefined' ? process.env.VITE_ALCHEMY_API_KEY : undefined;
-const infuraApiKey = typeof window === 'undefined' ? process.env.VITE_INFURA_API_KEY : undefined;
-const walletConnectProjectId = typeof window === 'undefined' ? process.env.VITE_WALLETCONNECT_PROJECT_ID : undefined;
+// Get API keys from environment variables
+const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY;
+const infuraApiKey = import.meta.env.VITE_INFURA_API_KEY;
+const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
-// For client-side, we'll use public providers and basic wallet connectors
-const isClientSide = typeof window !== 'undefined';
+console.log('🔧 Blockchain Configuration:', {
+  alchemyConfigured: !!alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here',
+  infuraConfigured: !!infuraApiKey && infuraApiKey !== 'your_infura_api_key_here',
+  walletConnectConfigured: !!walletConnectProjectId && walletConnectProjectId !== 'your_walletconnect_project_id_here',
+  environment: import.meta.env.MODE,
+});
 
-// Configure providers with public fallbacks for client-side
+// Configure providers
 const providers = [];
 
-// Only add API-based providers on server-side or if explicitly configured
-if (!isClientSide && alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here') {
+// Add API-based providers if configured
+if (alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here') {
   providers.push(alchemyProvider({ apiKey: alchemyApiKey }));
-  console.log('✅ Alchemy provider configured (server-side)');
+  console.log('✅ Alchemy provider configured');
 }
 
-if (!isClientSide && infuraApiKey && infuraApiKey !== 'your_infura_api_key_here') {
+if (infuraApiKey && infuraApiKey !== 'your_infura_api_key_here') {
   providers.push(infuraProvider({ apiKey: infuraApiKey }));
-  console.log('✅ Infura provider configured (server-side)');
+  console.log('✅ Infura provider configured');
 }
 
-// Always add public provider
+// Always add public provider as fallback
 providers.push(publicProvider());
-if (isClientSide) {
-  console.log('✅ Using public providers for client-side');
-}
+console.log('✅ Public provider configured');
 
 // Configure chains - prioritize testnets for development
 const supportedChains = [sepolia, polygonMumbai, goerli];
@@ -49,12 +51,25 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   providers
 );
 
-// Configure wallet connectors - use basic connectors for security
+// Configure wallet connectors
 let connectors;
 
-// For production, use basic connectors to avoid exposing WalletConnect project ID
-if (isClientSide || !walletConnectProjectId || walletConnectProjectId === 'your_walletconnect_project_id_here') {
-  console.log('🔄 Using secure wallet connectors (MetaMask + Injected)');
+try {
+  if (walletConnectProjectId && walletConnectProjectId !== 'your_walletconnect_project_id_here') {
+    // Use RainbowKit with WalletConnect
+    const { connectors: defaultConnectors } = getDefaultWallets({
+      appName: 'SoulCred',
+      projectId: walletConnectProjectId,
+      chains,
+    });
+    connectors = defaultConnectors;
+    console.log('✅ RainbowKit connectors configured with WalletConnect');
+  } else {
+    throw new Error('WalletConnect not configured, using basic connectors');
+  }
+} catch (error) {
+  console.log('🔄 Using basic wallet connectors (MetaMask + Injected)');
+  // Fallback to basic connectors
   connectors = [
     new MetaMaskConnector({ 
       chains,
@@ -66,28 +81,11 @@ if (isClientSide || !walletConnectProjectId || walletConnectProjectId === 'your_
     new InjectedConnector({
       chains,
       options: {
-        name: 'Browser Wallet',
+        name: 'Injected Wallet',
         shimDisconnect: true,
       },
     }),
   ];
-} else {
-  // Only use WalletConnect on server-side during development
-  try {
-    const { connectors: defaultConnectors } = getDefaultWallets({
-      appName: 'SoulCred',
-      projectId: walletConnectProjectId,
-      chains,
-    });
-    connectors = defaultConnectors;
-    console.log('✅ WalletConnect configured (development)');
-  } catch (error) {
-    console.log('🔄 Falling back to basic connectors');
-    connectors = [
-      new MetaMaskConnector({ chains }),
-      new InjectedConnector({ chains }),
-    ];
-  }
 }
 
 export const wagmiConfig = createConfig({
@@ -100,7 +98,6 @@ export const wagmiConfig = createConfig({
 export { chains };
 
 // Contract addresses for different networks
-// 🚀 UPDATED WITH YOUR DEPLOYED CONTRACT
 export const CONTRACT_ADDRESSES = {
   [mainnet.id]: null, // Deploy to mainnet when ready
   [polygon.id]: null, // Deploy to Polygon when ready
@@ -109,10 +106,9 @@ export const CONTRACT_ADDRESSES = {
   [goerli.id]: null, // Deploy to Goerli when ready
 } as const;
 
-// IPFS Configuration - no sensitive data exposed
+// IPFS Configuration
 export const IPFS_CONFIG = {
   gateway: 'https://gateway.pinata.cloud/ipfs/',
-  // API keys handled server-side only
 };
 
 // Default network for development
@@ -120,17 +116,14 @@ export const DEFAULT_CHAIN = sepolia;
 
 // Helper functions
 export const isBlockchainConfigured = () => {
-  // Always return true for client-side since we use public providers
-  return true;
+  return true; // Always return true since we have public providers
 };
 
 export const isWalletConnectConfigured = () => {
-  // Return false for client-side to use basic connectors
-  return false;
+  return !!walletConnectProjectId && walletConnectProjectId !== 'your_walletconnect_project_id_here';
 };
 
 export const isIPFSConfigured = () => {
-  // Check if IPFS service is available via serverless function
   return true; // Will be validated when actually used
 };
 
@@ -149,9 +142,11 @@ export const getContractAddress = (chainId: number) => {
 
 export const getConfigurationStatus = () => {
   return {
-    walletConnect: false, // Disabled for security
-    blockchain: true, // Using public providers
+    walletConnect: isWalletConnectConfigured(),
+    alchemy: !!alchemyApiKey && alchemyApiKey !== 'your_alchemy_api_key_here',
+    infura: !!infuraApiKey && infuraApiKey !== 'your_infura_api_key_here',
     pinata: true, // Handled server-side
+    blockchain: true,
     environment: import.meta.env.MODE,
     production: import.meta.env.PROD,
   };

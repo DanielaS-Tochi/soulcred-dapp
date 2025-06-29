@@ -51,6 +51,15 @@ const customDarkTheme = {
   },
 };
 
+// Add error boundary for better debugging
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WagmiConfig config={wagmiConfig}>
@@ -68,6 +77,7 @@ createRoot(document.getElementById('root')!).render(
           modalSize="compact"
           showRecentTransactions={true}
           initialChain={chains[0]}
+          coolMode={false}
         >
           <App />
         </RainbowKitProvider>

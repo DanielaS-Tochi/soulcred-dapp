@@ -38,20 +38,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Log configuration status on mount (only once)
+  // Log configuration status on mount
   useEffect(() => {
     const config = getConfigurationStatus();
     console.log('🔧 SoulCred Configuration Status:', {
-      walletConnect: config.walletConnect ? '✅ Configured' : '❌ Not configured',
-      alchemy: config.alchemy ? '✅ Configured' : '❌ Not configured',
-      infura: config.infura ? '✅ Configured' : '❌ Not configured',
+      walletConnect: config.walletConnect ? '✅ Configured' : '❌ Not configured (using basic connectors)',
+      alchemy: config.alchemy ? '✅ Configured' : '❌ Not configured (using public RPC)',
+      infura: config.infura ? '✅ Configured' : '❌ Not configured (using public RPC)',
       pinata: config.pinata ? '✅ Configured' : '❌ Not configured',
+      environment: config.environment,
     });
     
-    if (!config.walletConnect) {
-      console.info('💡 To enable WalletConnect (mobile wallets, QR codes), get a project ID from https://cloud.walletconnect.com');
-    }
-  }, []);
+    console.log('🔌 Available connectors:', connectors.map(c => ({ 
+      name: c.name, 
+      ready: c.ready,
+      id: c.id 
+    })));
+  }, [connectors]);
 
   // Create wallet state
   const walletState: WalletState = {
@@ -71,8 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setConnectionError(null);
     
     try {
-      // Log available connectors for debugging
-      console.log('🔌 Available wallet connectors:', connectors.map(c => ({ 
+      console.log('🔌 Available connectors:', connectors.map(c => ({ 
         name: c.name, 
         ready: c.ready,
         id: c.id 
