@@ -20,18 +20,17 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
-    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    sourcemap: false,
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.log in production
+        drop_console: true,
         drop_debugger: true,
       },
     },
   },
   define: {
     global: 'globalThis',
-    // Only expose non-sensitive environment variables
     'import.meta.env.VITE_APP_NAME': JSON.stringify('SoulCred'),
     'import.meta.env.VITE_APP_VERSION': JSON.stringify('1.0.0'),
     'import.meta.env.VITE_ENABLE_MAINNET': JSON.stringify(process.env.VITE_ENABLE_MAINNET || 'false'),
@@ -46,7 +45,6 @@ export default defineConfig({
     host: true,
   },
   esbuild: {
-    // Remove console.log in production
     drop: ['console', 'debugger'],
   },
 });
