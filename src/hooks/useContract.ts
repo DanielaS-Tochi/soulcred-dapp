@@ -1,12 +1,12 @@
 import { useContractRead, useContractWrite, useAccount, useNetwork } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '../config/blockchain';
 
-// ABI for the SoulCredSBT contract (simplified)
+// Updated ABI for the SoulCredSBT contract matching your deployed version
 const SOULCRED_ABI = [
   {
     "inputs": [
       {"internalType": "address", "name": "to", "type": "address"},
-      {"internalType": "string", "name": "tokenURI", "type": "string"},
+      {"internalType": "string", "name": "uri", "type": "string"},
       {"internalType": "tuple", "name": "credentialData", "type": "tuple", "components": [
         {"internalType": "string", "name": "title", "type": "string"},
         {"internalType": "string", "name": "category", "type": "string"},
@@ -67,6 +67,62 @@ const SOULCRED_ABI = [
     "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "name",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symbol",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "ownerOf",
+    "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "tokenURI",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "recipient", "type": "address"},
+      {"indexed": false, "internalType": "string", "name": "title", "type": "string"},
+      {"indexed": false, "internalType": "string", "name": "category", "type": "string"}
+    ],
+    "name": "CredentialMinted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "endorser", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "newEndorsementCount", "type": "uint256"}
+    ],
+    "name": "CredentialEndorsed",
+    "type": "event"
   }
 ];
 
@@ -121,6 +177,32 @@ export function useSoulCredContract() {
     });
   };
 
+  // Function to read contract info
+  const readContractInfo = () => {
+    const { data: name } = useContractRead({
+      address: contractAddress as `0x${string}`,
+      abi: SOULCRED_ABI,
+      functionName: 'name',
+      enabled: !!contractAddress,
+    });
+
+    const { data: symbol } = useContractRead({
+      address: contractAddress as `0x${string}`,
+      abi: SOULCRED_ABI,
+      functionName: 'symbol',
+      enabled: !!contractAddress,
+    });
+
+    const { data: owner } = useContractRead({
+      address: contractAddress as `0x${string}`,
+      abi: SOULCRED_ABI,
+      functionName: 'owner',
+      enabled: !!contractAddress,
+    });
+
+    return { name, symbol, owner };
+  };
+
   return {
     contractAddress,
     isContractReady: !!contractAddress,
@@ -132,6 +214,7 @@ export function useSoulCredContract() {
     isEndorsing,
     readCredential,
     readEndorsementCount,
+    readContractInfo,
     abi: SOULCRED_ABI,
   };
 }

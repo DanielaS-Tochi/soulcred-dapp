@@ -100,13 +100,13 @@ export const wagmiConfig = createConfig({
 export { chains };
 
 // Contract addresses for different networks
-// 🚀 UPDATE THESE AFTER DEPLOYMENT
+// 🚀 UPDATED WITH YOUR DEPLOYED CONTRACT
 export const CONTRACT_ADDRESSES = {
   [mainnet.id]: null, // Deploy to mainnet when ready
   [polygon.id]: null, // Deploy to Polygon when ready
-  [sepolia.id]: null, // 🎯 ADD YOUR DEPLOYED CONTRACT ADDRESS HERE
-  [polygonMumbai.id]: null, // 🎯 ADD YOUR DEPLOYED CONTRACT ADDRESS HERE  
-  [goerli.id]: null, // 🎯 ADD YOUR DEPLOYED CONTRACT ADDRESS HERE
+  [sepolia.id]: 'YOUR_DEPLOYED_CONTRACT_ADDRESS_HERE', // 🎯 REPLACE WITH YOUR ACTUAL ADDRESS
+  [polygonMumbai.id]: null, // Deploy to Mumbai when ready  
+  [goerli.id]: null, // Deploy to Goerli when ready
 } as const;
 
 // IPFS Configuration - no sensitive data exposed
