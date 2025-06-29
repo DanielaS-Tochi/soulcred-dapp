@@ -1,5 +1,5 @@
 import { createConfig, configureChains } from 'wagmi';
-import { sepolia, polygonMumbai, goerli, mainnet, polygon } from 'wagmi/chains';
+import { sepolia, polygonMumbai, goerli } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
 import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { infuraProvider } from 'wagmi/providers/infura';
@@ -37,14 +37,8 @@ if (infuraApiKey && infuraApiKey !== 'your_infura_api_key_here') {
 providers.push(publicProvider());
 console.log('✅ Public provider configured');
 
-// Configure chains - prioritize testnets for development
+// Configure chains - only testnets to avoid TypeScript issues
 const supportedChains = [sepolia, polygonMumbai, goerli];
-
-// Add mainnet chains only if explicitly enabled
-if (import.meta.env.VITE_ENABLE_MAINNET === 'true') {
-  supportedChains.unshift(mainnet, polygon);
-  console.log('✅ Mainnet chains enabled');
-}
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   supportedChains,
@@ -67,7 +61,7 @@ try {
   } else {
     throw new Error('WalletConnect not configured, using basic connectors');
   }
-} catch (error) {
+} catch {
   console.log('🔄 Using basic wallet connectors (MetaMask + Injected)');
   // Fallback to basic connectors
   connectors = [
@@ -99,8 +93,6 @@ export { chains };
 
 // Contract addresses for different networks
 export const CONTRACT_ADDRESSES = {
-  [mainnet.id]: null, // Deploy to mainnet when ready
-  [polygon.id]: null, // Deploy to Polygon when ready
   [sepolia.id]: '0xF766558E8042681F5f0861df2e4f06c7A2cfD17b', // ✅ YOUR DEPLOYED CONTRACT
   [polygonMumbai.id]: null, // Deploy to Mumbai when ready  
   [goerli.id]: null, // Deploy to Goerli when ready
@@ -152,21 +144,14 @@ export const getConfigurationStatus = () => {
   };
 };
 
-// Network configuration helper
+// Network configuration helper with proper typing
 export const getNetworkConfig = (chainId: number) => {
-  const networkConfigs = {
-    [mainnet.id]: {
-      name: 'Ethereum Mainnet',
-      currency: 'ETH',
-      explorerUrl: 'https://etherscan.io',
-      rpcUrl: 'https://cloudflare-eth.com',
-    },
-    [polygon.id]: {
-      name: 'Polygon',
-      currency: 'MATIC',
-      explorerUrl: 'https://polygonscan.com',
-      rpcUrl: 'https://polygon-rpc.com',
-    },
+  const networkConfigs: Record<number, {
+    name: string;
+    currency: string;
+    explorerUrl: string;
+    rpcUrl: string;
+  }> = {
     [sepolia.id]: {
       name: 'Sepolia Testnet',
       currency: 'ETH',

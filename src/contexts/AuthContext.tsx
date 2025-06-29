@@ -30,7 +30,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
-  const { connect, connectors, error: connectError, isLoading, pendingConnector } = useConnect();
+  const { connect, connectors, error: connectError, isLoading } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: ensName } = useEnsName({ address });
   const { data: ensAvatar } = useEnsAvatar({ name: ensName });
