@@ -6,6 +6,7 @@ import { ipfsService } from '../../services/ipfsService';
 import { getContractAddress, isContractDeployed, getNetworkConfig } from '../../config/blockchain';
 import FileUpload from '../ui/FileUpload';
 import { useToast } from '../ui/Toast';
+import ContractStatus from './ContractStatus';
 
 interface FormData {
   title: string;
@@ -374,63 +375,21 @@ const EnhancedMintCredential: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Create a permanent, blockchain-verified record of your learning achievements.
         </p>
-        
-        {/* Network Status */}
-        {chain && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-blue-700 dark:text-blue-300 text-sm font-medium">
-                Connected to {networkConfig?.name || chain.name}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Contract Status */}
-        {!isContractAvailable && (
-          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              <div>
-                <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">
-                  Smart Contract Not Deployed
-                </p>
-                <p className="text-yellow-600 dark:text-yellow-400 text-xs">
-                  The SoulCred contract is not yet deployed on {chain?.name || 'this network'}. 
-                  You can still create credentials in demo mode.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* IPFS Status */}
-        {!ipfsService.isReady() && (
-          <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-              <div>
-                <p className="text-orange-700 dark:text-orange-300 text-sm font-medium">
-                  IPFS Service Not Configured
-                </p>
-                <p className="text-orange-600 dark:text-orange-400 text-xs">
-                  File uploads will not work without Pinata configuration. Evidence links can still be added manually.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Contract Status */}
+      <div className="mb-8">
+        <ContractStatus />
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Progress Steps */}
       <div className="mb-8">
