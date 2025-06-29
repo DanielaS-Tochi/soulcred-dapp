@@ -104,7 +104,7 @@ export { chains };
 export const CONTRACT_ADDRESSES = {
   [mainnet.id]: null, // Deploy to mainnet when ready
   [polygon.id]: null, // Deploy to Polygon when ready
-  [sepolia.id]: 'YOUR_DEPLOYED_CONTRACT_ADDRESS_HERE', // 🎯 REPLACE WITH YOUR ACTUAL ADDRESS
+  [sepolia.id]: '0xF766558E8042681F5f0861df2e4f06c7A2cfD17b', // 🎯 REPLACE WITH YOUR ACTUAL ADDRESS
   [polygonMumbai.id]: null, // Deploy to Mumbai when ready  
   [goerli.id]: null, // Deploy to Goerli when ready
 } as const;
