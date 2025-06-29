@@ -20,19 +20,21 @@
     
     <title>SoulCred - Decentralized Credential Platform</title>
     
-    <!-- Custom Bolt.new Badge Configuration -->
+    <!-- Enhanced Bolt.new Badge Configuration with Smart Positioning -->
     <style>
       .bolt-badge {
         transition: all 0.3s ease;
         filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-        width: 6rem;
-        height: 6rem;
+        width: 4rem;
+        height: 4rem;
         z-index: 9999;
+        opacity: 0.9;
       }
       
       .bolt-badge:hover {
         transform: scale(1.05);
         filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+        opacity: 1;
       }
       
       @keyframes badgeIntro {
@@ -45,7 +47,7 @@
         }
         100% { 
           transform: scale(1) translateX(0); 
-          opacity: 1; 
+          opacity: 0.9; 
         }
       }
       
@@ -72,71 +74,91 @@
         animation: badgePulse 3s ease-in-out infinite;
       }
       
-      /* Responsive positioning and sizing */
+      /* Smart positioning that avoids header interference */
       .bolt-badge-container {
         position: fixed;
-        top: 1rem;
-        right: 1rem;
-        z-index: 9999;
+        z-index: 9998; /* Lower than header elements */
+        pointer-events: auto;
       }
       
-      /* Adjust position when header is present */
-      @media (min-width: 768px) {
+      /* Default position - bottom right to avoid header */
+      .bolt-badge-container {
+        bottom: 1rem;
+        right: 1rem;
+      }
+      
+      /* Responsive adjustments */
+      @media (min-width: 640px) {
         .bolt-badge-container {
-          top: 1.25rem;
-          right: 1.25rem;
+          bottom: 1.5rem;
+          right: 1.5rem;
         }
         .bolt-badge {
-          width: 5.5rem;
-          height: 5.5rem;
+          width: 4.5rem;
+          height: 4.5rem;
         }
       }
       
       @media (min-width: 1024px) {
         .bolt-badge-container {
-          top: 1.5rem;
-          right: 1.5rem;
+          bottom: 2rem;
+          right: 2rem;
         }
         .bolt-badge {
-          width: 6rem;
-          height: 6rem;
+          width: 5rem;
+          height: 5rem;
         }
       }
       
-      /* Adjust for mobile when header navigation is visible */
+      /* When header is present, ensure no overlap */
+      .bolt-badge-container.avoid-header {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+      }
+      
+      /* Special handling for mobile when header navigation is visible */
       @media (max-width: 767px) {
         .bolt-badge-container {
-          top: 0.75rem;
-          right: 0.75rem;
+          bottom: 1rem;
+          right: 1rem;
+          top: auto;
         }
         .bolt-badge {
-          width: 4rem;
-          height: 4rem;
+          width: 3.5rem;
+          height: 3.5rem;
         }
       }
       
-      /* Ensure badge doesn't interfere with header content */
-      .bolt-badge-container.header-present {
-        top: 5rem;
+      /* Ensure badge doesn't interfere with any header content */
+      .bolt-badge-container.header-active {
+        top: auto !important;
+        bottom: 1rem !important;
       }
       
-      @media (min-width: 768px) {
-        .bolt-badge-container.header-present {
-          top: 1.25rem;
-        }
+      /* Hide badge temporarily when header actions are active */
+      .bolt-badge-container.hide-temporarily {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.8);
+      }
+      
+      /* Smooth transitions for all positioning changes */
+      .bolt-badge-container {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- Bolt.new Badge -->
-    <div class="bolt-badge-container">
+    <!-- Enhanced Bolt.new Badge with Smart Positioning -->
+    <div class="bolt-badge-container avoid-header">
       <a href="https://bolt.new/?rid=os72mi" 
          target="_blank" 
          rel="noopener noreferrer" 
          class="block transition-all duration-300 hover:shadow-2xl"
-         title="Built with Bolt.new">
+         title="Built with Bolt.new - AI-powered development platform">
         <img src="https://storage.bolt.army/black_circle_360x360.png" 
              alt="Built with Bolt.new" 
              class="bolt-badge bolt-badge-intro rounded-full shadow-lg border-2 border-white/20 backdrop-blur-sm"
@@ -146,36 +168,95 @@
     
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Script to adjust badge position based on header presence -->
+    <!-- Enhanced script to handle badge positioning intelligently -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         const badgeContainer = document.querySelector('.bolt-badge-container');
-        const observer = new MutationObserver(function() {
+        let hideTimeout;
+        
+        // Function to check if header actions are active
+        function checkHeaderActivity() {
+          // Check for open dropdowns, modals, or active header elements
+          const activeElements = document.querySelectorAll([
+            '[aria-expanded="true"]',
+            '.dropdown-open',
+            '.modal-open',
+            'header button:focus',
+            'header button:hover',
+            '.header-menu-open'
+          ].join(','));
+          
+          return activeElements.length > 0;
+        }
+        
+        // Function to update badge position based on header state
+        function updateBadgePosition() {
           const header = document.querySelector('header');
-          if (header && window.innerWidth < 768) {
-            badgeContainer.classList.add('header-present');
+          const isHeaderActive = checkHeaderActivity();
+          
+          if (isHeaderActive) {
+            badgeContainer.classList.add('hide-temporarily');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+              badgeContainer.classList.remove('hide-temporarily');
+            }, 2000); // Hide for 2 seconds when header is active
           } else {
-            badgeContainer.classList.remove('header-present');
+            badgeContainer.classList.remove('hide-temporarily');
+          }
+          
+          // Always keep badge at bottom to avoid header interference
+          badgeContainer.classList.add('header-active');
+        }
+        
+        // Monitor header activity
+        const observer = new MutationObserver(updateBadgePosition);
+        observer.observe(document.body, { 
+          childList: true, 
+          subtree: true, 
+          attributes: true,
+          attributeFilter: ['aria-expanded', 'class']
+        });
+        
+        // Monitor focus and hover events on header elements
+        document.addEventListener('focusin', function(e) {
+          if (e.target.closest('header')) {
+            updateBadgePosition();
           }
         });
         
-        observer.observe(document.body, { childList: true, subtree: true });
-        
-        // Initial check
-        setTimeout(() => {
-          const header = document.querySelector('header');
-          if (header && window.innerWidth < 768) {
-            badgeContainer.classList.add('header-present');
+        document.addEventListener('focusout', function(e) {
+          if (e.target.closest('header')) {
+            setTimeout(updateBadgePosition, 100);
           }
-        }, 100);
+        });
+        
+        // Monitor mouse events on header
+        document.addEventListener('mouseover', function(e) {
+          if (e.target.closest('header')) {
+            updateBadgePosition();
+          }
+        });
+        
+        document.addEventListener('mouseout', function(e) {
+          if (e.target.closest('header')) {
+            setTimeout(updateBadgePosition, 100);
+          }
+        });
         
         // Handle window resize
-        window.addEventListener('resize', function() {
-          const header = document.querySelector('header');
-          if (header && window.innerWidth < 768) {
-            badgeContainer.classList.add('header-present');
-          } else {
-            badgeContainer.classList.remove('header-present');
+        window.addEventListener('resize', updateBadgePosition);
+        
+        // Initial positioning
+        setTimeout(updateBadgePosition, 100);
+        
+        // Ensure badge doesn't interfere with logout or other header actions
+        document.addEventListener('click', function(e) {
+          if (e.target.closest('header')) {
+            badgeContainer.classList.add('hide-temporarily');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+              badgeContainer.classList.remove('hide-temporarily');
+            }, 1500);
           }
         });
       });
