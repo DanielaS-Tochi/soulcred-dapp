@@ -3,6 +3,13 @@ import { useAccount, useConnect, useDisconnect, useEnsName, useEnsAvatar } from 
 import { User, WalletState } from '../types';
 import { getConfigurationStatus } from '../config/blockchain';
 
+// Extend the Window interface to include 'ethereum'
+declare global {
+  interface Window {
+    ethereum?: unknown;
+  }
+}
+
 interface AuthContextType {
   walletState: WalletState;
   user: User | null;

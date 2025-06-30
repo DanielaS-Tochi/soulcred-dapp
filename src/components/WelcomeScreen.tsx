@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, Award, Users, Shield, ArrowRight, AlertCircle, RefreshCw, ExternalLink, X, Download, CheckCircle } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+// import { useTheme } from '../contexts/ThemeContext';
 import { getConfigurationStatus } from '../config/blockchain';
 import AnimatedLogo from './ui/AnimatedLogo';
 import UserProfileCard from './ui/UserProfileCard';
@@ -10,7 +10,7 @@ import { mockUsers } from '../data/mockData';
 
 const WelcomeScreen: React.FC = () => {
   const { isConnecting, connectionError, clearError, connectWallet, isAuthenticated, user } = useAuth();
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const [showWalletHelp, setShowWalletHelp] = useState(false);
   const [showConfigStatus, setShowConfigStatus] = useState(false);
 
