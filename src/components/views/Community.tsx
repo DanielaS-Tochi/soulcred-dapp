@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Search, Filter, Star, MessageCircle, Users, Award, TrendingUp, Heart, ExternalLink } from 'lucide-react';
 import { mockUsers, mockAchievements } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../ui/Toast';
 
 const Community: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeTab, setActiveTab] = useState<'feed' | 'users' | 'leaderboard'>('feed');
@@ -38,19 +40,28 @@ const Community: React.FC = () => {
 
   const handleEndorse = (credentialId: string) => {
     setEndorsedItems(prev => new Set([...prev, credentialId]));
+    const achievement = mockAchievements.find(a => a.credential.id === credentialId);
+    if (achievement) {
+      showToast(`Endorsed ${achievement.credential.title}`, 'success');
+    }
     console.log('Endorsed credential:', credentialId);
-    // In a real app, this would make an API call
   };
 
   const handleMessage = (userId: string) => {
     setMessagedUsers(prev => new Set([...prev, userId]));
+    const targetUser = mockUsers.find(u => u.id === userId);
+    if (targetUser) {
+      showToast(`Opening message with ${targetUser.name}`, 'info');
+    }
     console.log('Messaging user:', userId);
-    // In a real app, this would open messaging interface
   };
 
   const handleConnect = (userId: string) => {
+    const targetUser = mockUsers.find(u => u.id === userId);
+    if (targetUser) {
+      showToast(`Connection request sent to ${targetUser.name}`, 'success');
+    }
     console.log('Connecting with user:', userId);
-    // In a real app, this would send a connection request
   };
 
   return (

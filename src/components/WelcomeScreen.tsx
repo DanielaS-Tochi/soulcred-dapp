@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wallet, Award, Users, Shield, ArrowRight, AlertCircle, RefreshCw, ExternalLink, X, Download, CheckCircle } from 'lucide-react';
+import { useToast } from './ui/Toast';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,6 +12,7 @@ import { mockUsers } from '../data/mockData';
 const WelcomeScreen: React.FC = () => {
   const { isConnecting, connectionError, clearError, connectWallet, isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const [showWalletHelp, setShowWalletHelp] = useState(false);
   const [showConfigStatus, setShowConfigStatus] = useState(false);
 
@@ -66,11 +68,19 @@ const WelcomeScreen: React.FC = () => {
   ];
 
   const handleMessage = (userId: string) => {
-    console.log('Messaging user:', userId);
+    const targetUser = mockUsers.find(u => u.id === userId);
+    if (targetUser) {
+      showToast(`Opening message with ${targetUser.name}`, 'info');
+      console.log('Messaging user:', userId);
+    }
   };
 
   const handleConnect = (userId: string) => {
-    console.log('Connecting with user:', userId);
+    const targetUser = mockUsers.find(u => u.id === userId);
+    if (targetUser) {
+      showToast(`Connection request sent to ${targetUser.name}`, 'success');
+      console.log('Connecting with user:', userId);
+    }
   };
 
   const getColorClasses = (color: string) => {
@@ -107,7 +117,7 @@ const WelcomeScreen: React.FC = () => {
           
           <p className="text-xl text-gray-700 dark:text-gray-200 mb-8 max-w-3xl mx-auto leading-relaxed">
             The decentralized platform for issuing and managing Soulbound Tokens that represent
-            your learning achievements, skills, and community contributions. TEST: GitHub sync active!
+            your learning achievements, skills, and community contributions.
           </p>
 
           {/* System Status */}
