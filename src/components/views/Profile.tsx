@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, MapPin, Calendar, Award, Star, Edit2, Save, X, LogOut, Copy, Check } from 'lucide-react';
+import { Camera, MapPin, Calendar, Award, Star, CreditCard as Edit2, Save, X, LogOut, Copy, Check } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../../contexts/AuthContext';
 import { databaseService } from '../../services/database';
