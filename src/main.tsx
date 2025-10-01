@@ -64,27 +64,25 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <WagmiConfig config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider 
-          chains={chains}
-          theme={{
-            lightMode: customTheme,
-            darkMode: customDarkTheme,
-          }}
-          appInfo={{
-            appName: 'SoulCred',
-            learnMoreUrl: 'https://ethereum.org/en/wallets/',
-          }}
-          modalSize="compact"
-          showRecentTransactions={true}
-          initialChain={chains[0]}
-          coolMode={false}
-        >
-          <App />
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiConfig>
-  </StrictMode>
+  <WagmiConfig config={wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <RainbowKitProvider
+        chains={chains}
+        theme={{
+          lightMode: customTheme,
+          darkMode: customDarkTheme,
+        }}
+        appInfo={{
+          appName: 'SoulCred',
+          learnMoreUrl: 'https://ethereum.org/en/wallets/',
+        }}
+        modalSize="compact"
+        showRecentTransactions={true}
+        initialChain={chains[0]}
+        coolMode={false}
+      >
+        <App />
+      </RainbowKitProvider>
+    </QueryClientProvider>
+  </WagmiConfig>
 );
