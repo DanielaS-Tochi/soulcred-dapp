@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { User, WalletState } from '../types';
 import { getConfigurationStatus } from '../config/blockchain';
+import { databaseService } from '../services/database';
 
 interface AuthContextType {
   walletState: WalletState;
@@ -127,55 +128,102 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       disconnect();
       setUser(null);
       setConnectionError(null);
-      localStorage.removeItem('soulcred-user-profile');
       console.log('👋 Wallet disconnected successfully');
     } catch (error) {
       console.error('❌ Disconnect error:', error);
     }
   };
 
-  // Generate user profile when wallet connects
+  // Generate user profile when wallet connects and sync with Supabase
   useEffect(() => {
-    if (isConnected && address) {
-      console.log('✅ Wallet connected:', address);
-      
-      // Check if user profile exists in localStorage
-      const savedProfile = localStorage.getItem('soulcred-user-profile');
-      
-      if (savedProfile) {
+    const initializeUser = async () => {
+      if (isConnected && address) {
+        console.log('✅ Wallet connected:', address);
+
         try {
-          const profile = JSON.parse(savedProfile);
-          if (profile.address === address) {
-            setUser(profile);
-            console.log('👤 Loaded existing user profile');
-            return;
+          // Try to fetch existing profile from Supabase
+          let profile = await databaseService.getUserProfile(address);
+
+          if (profile) {
+            // Convert database profile to User type
+            const existingUser: User = {
+              id: profile.id || address,
+              address: profile.wallet_address,
+              name: profile.display_name || `User ${address.slice(0, 6)}...${address.slice(-4)}`,
+              bio: profile.bio || 'Web3 learner passionate about decentralized technologies and continuous education.',
+              avatar: profile.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}&backgroundColor=8b5cf6`,
+              skills: profile.skills || ['Web3', 'Blockchain', 'Learning'],
+              location: profile.location || 'Decentralized Web',
+              joinedDate: profile.created_at || new Date().toISOString(),
+              totalCredentials: profile.total_credentials || 0,
+              endorsements: profile.total_endorsements || 0,
+              reputation: profile.reputation || 100,
+            };
+
+            setUser(existingUser);
+            console.log('👤 Loaded existing user profile from database');
+          } else {
+            // Create new profile in database
+            const newProfile = {
+              wallet_address: address,
+              display_name: ensName || `User ${address.slice(0, 6)}...${address.slice(-4)}`,
+              bio: 'Web3 learner passionate about decentralized technologies and continuous education.',
+              avatar_url: ensAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}&backgroundColor=8b5cf6`,
+              skills: ['Web3', 'Blockchain', 'Learning'],
+              location: 'Decentralized Web',
+              reputation: 100,
+              total_credentials: 0,
+              total_endorsements: 0,
+            };
+
+            const createdProfile = await databaseService.createUserProfile(newProfile);
+
+            if (createdProfile) {
+              const newUser: User = {
+                id: createdProfile.id || address,
+                address: createdProfile.wallet_address,
+                name: createdProfile.display_name || `User ${address.slice(0, 6)}...${address.slice(-4)}`,
+                bio: createdProfile.bio || 'Web3 learner passionate about decentralized technologies and continuous education.',
+                avatar: createdProfile.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}&backgroundColor=8b5cf6`,
+                skills: createdProfile.skills || ['Web3', 'Blockchain', 'Learning'],
+                location: createdProfile.location || 'Decentralized Web',
+                joinedDate: createdProfile.created_at || new Date().toISOString(),
+                totalCredentials: createdProfile.total_credentials || 0,
+                endorsements: createdProfile.total_endorsements || 0,
+                reputation: createdProfile.reputation || 100,
+              };
+
+              setUser(newUser);
+              console.log('🎉 Created new user profile in database');
+            }
           }
         } catch (error) {
-          console.warn('⚠️ Failed to parse saved profile:', error);
+          console.error('❌ Error initializing user profile:', error);
+
+          // Fallback to local profile creation
+          const fallbackUser: User = {
+            id: address,
+            address,
+            name: ensName || `User ${address.slice(0, 6)}...${address.slice(-4)}`,
+            bio: 'Web3 learner passionate about decentralized technologies and continuous education.',
+            avatar: ensAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}&backgroundColor=8b5cf6`,
+            skills: ['Web3', 'Blockchain', 'Learning'],
+            location: 'Decentralized Web',
+            joinedDate: new Date().toISOString(),
+            totalCredentials: 0,
+            endorsements: 0,
+            reputation: 100,
+          };
+
+          setUser(fallbackUser);
+          console.log('⚠️ Using fallback user profile');
         }
+      } else if (!isConnected) {
+        setUser(null);
       }
+    };
 
-      // Create new user profile
-      const newUser: User = {
-        id: address,
-        address,
-        name: ensName || `User ${address.slice(0, 6)}...${address.slice(-4)}`,
-        bio: 'Web3 learner passionate about decentralized technologies and continuous education.',
-        avatar: ensAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}&backgroundColor=8b5cf6`,
-        skills: ['Web3', 'Blockchain', 'Learning'],
-        location: 'Decentralized Web',
-        joinedDate: new Date().toISOString(),
-        totalCredentials: 0,
-        endorsements: 0,
-        reputation: 100, // Starting reputation
-      };
-
-      setUser(newUser);
-      localStorage.setItem('soulcred-user-profile', JSON.stringify(newUser));
-      console.log('🎉 Created new user profile');
-    } else if (!isConnected) {
-      setUser(null);
-    }
+    initializeUser();
   }, [isConnected, address, ensName, ensAvatar]);
 
   // Handle connection errors with better messaging
