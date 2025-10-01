@@ -9,6 +9,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'INVALID_ANNOTATION' && warning.message.includes('@walletconnect/legacy-modal')) {
+          return;
+        }
+        warn(warning);
+      },
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
