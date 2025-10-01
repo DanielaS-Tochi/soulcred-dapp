@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAccount, useConnect, useDisconnect, useEnsName, useEnsAvatar } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { User, WalletState } from '../types';
 import { getConfigurationStatus } from '../config/blockchain';
 
@@ -32,8 +32,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
   const { connect, connectors, error: connectError, isLoading } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: ensName } = useEnsName({ address });
-  const { data: ensAvatar } = useEnsAvatar({ name: ensName });
+
+  // Disable ENS lookups to prevent errors (they're optional features)
+  const ensName = null;
+  const ensAvatar = null;
 
   const [user, setUser] = useState<User | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
