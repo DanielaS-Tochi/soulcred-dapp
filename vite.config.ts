@@ -16,16 +16,21 @@ export default defineConfig({
           rainbowkit: ['@rainbow-me/rainbowkit'],
           charts: ['recharts'],
           utils: ['axios', 'react-dropzone'],
+          supabase: ['@supabase/supabase-js'],
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
-    sourcemap: false,
+    chunkSizeWarningLimit: 1500,
+    sourcemap: true,
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: false,
         drop_debugger: true,
+        pure_funcs: ['console.debug', 'console.trace'],
+      },
+      format: {
+        comments: false,
       },
     },
   },
@@ -45,6 +50,6 @@ export default defineConfig({
     host: true,
   },
   esbuild: {
-    drop: ['console', 'debugger'],
+    drop: ['debugger'],
   },
 });

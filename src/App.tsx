@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -6,14 +6,16 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import Header from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import WelcomeScreen from './components/WelcomeScreen';
-import EnhancedDashboard from './components/views/EnhancedDashboard';
-import Profile from './components/views/Profile';
-import EnhancedMintCredential from './components/views/EnhancedMintCredential';
-import Community from './components/views/Community';
-import Achievements from './components/views/Achievements';
 import AccessibilityControls from './components/ui/AccessibilityControls';
 import KeyboardNavigation from './components/ui/KeyboardNavigation';
 import ScreenReaderAnnouncements from './components/ui/ScreenReaderAnnouncements';
+import { LoadingSpinner } from './components/ui/LoadingStates';
+
+const EnhancedDashboard = lazy(() => import('./components/views/EnhancedDashboard'));
+const Profile = lazy(() => import('./components/views/Profile'));
+const EnhancedMintCredential = lazy(() => import('./components/views/EnhancedMintCredential'));
+const Community = lazy(() => import('./components/views/Community'));
+const Achievements = lazy(() => import('./components/views/Achievements'));
 
 type View = 'dashboard' | 'profile' | 'mint' | 'community' | 'achievements';
 
@@ -78,7 +80,13 @@ function AppContent() {
       <Header currentView={currentView} onViewChange={handleViewChange} />
       <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
         <ErrorBoundary>
-          {renderCurrentView()}
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+              <LoadingSpinner size="lg" />
+            </div>
+          }>
+            {renderCurrentView()}
+          </Suspense>
         </ErrorBoundary>
       </main>
       <Footer />

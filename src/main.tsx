@@ -4,9 +4,12 @@ import { WagmiConfig } from 'wagmi';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { wagmiConfig, chains } from './config/blockchain';
+import { environmentValidator } from './services/environmentValidator';
 import App from './App.tsx';
 import './index.css';
 import '@rainbow-me/rainbowkit/styles.css';
+
+environmentValidator.validateOnStartup();
 
 const queryClient = new QueryClient({
   defaultOptions: {
