@@ -1,16 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Award, Users, TrendingUp, Calendar, Star } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { databaseService, Credential, UserAchievement } from '../../services/database';
 import { mockCredentials, mockAchievements } from '../../data/mockData';
 import CredentialCard from '../ui/CredentialCard';
+import LoadingSpinner from '../ui/LoadingStates';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const [credentials, setCredentials] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user?.address) return;
+
+      setLoading(true);
+      try {
+        const [userCreds, userAchievements] = await Promise.all([
+          databaseService.getUserCredentials(user.address),
+          databaseService.getUserAchievements(user.address),
+        ]);
+
+        if (userCreds.length > 0) {
+          setCredentials(userCreds.map(cred => ({
+            id: cred.id,
+            title: cred.title,
+            category: cred.category,
+            description: cred.description,
+            issuer: cred.issuer || 'Self-Issued',
+            dateEarned: cred.date_earned || cred.created_at,
+            verified: cred.verified || false,
+            skills: cred.skills || [],
+            learningHours: cred.learning_hours || 0,
+            projectsCompleted: cred.projects_completed || 0,
+            peersHelped: cred.peers_helped || 0,
+            communityContributions: cred.community_contributions || 0,
+          })));
+        } else {
+          setCredentials(mockCredentials.slice(0, 3));
+        }
+
+        if (userAchievements.length > 0) {
+          setAchievements(userAchievements);
+        } else {
+          setAchievements(mockAchievements.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        setCredentials(mockCredentials.slice(0, 3));
+        setAchievements(mockAchievements.slice(0, 3));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
 
   if (!user) return null;
 
-  const recentCredentials = mockCredentials.slice(0, 3);
-  const recentAchievements = mockAchievements.slice(0, 3);
+  const recentCredentials = credentials.slice(0, 3);
+  const recentAchievements = achievements.slice(0, 3);
 
   const stats = [
     {

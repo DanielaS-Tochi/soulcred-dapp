@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { Camera, MapPin, Calendar, Award, Star, Edit2, Save, X, LogOut, Copy, Check } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../../contexts/AuthContext';
+import { databaseService } from '../../services/database';
+import { useToast } from '../ui/Toast';
 
 const Profile: React.FC = () => {
   const { user, disconnectWallet } = useAuth();
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
     bio: user?.bio || '',
@@ -17,17 +21,37 @@ const Profile: React.FC = () => {
 
   if (!user) return null;
 
-  const handleSave = () => {
-    // Update user profile in localStorage
-    const updatedUser = { ...user, ...editForm };
-    localStorage.setItem('soulcred-user-profile', JSON.stringify(updatedUser));
-    
-    // In a real app, this would update the user profile via API
-    console.log('Saving profile:', editForm);
-    setIsEditing(false);
-    
-    // Reload to reflect changes (in a real app, you'd update the context state)
-    window.location.reload();
+  const handleSave = async () => {
+    if (!user?.address) return;
+
+    setSaving(true);
+    try {
+      const updates = {
+        display_name: editForm.name,
+        bio: editForm.bio,
+        location: editForm.location,
+        skills: editForm.skills,
+      };
+
+      await databaseService.updateUserProfile(user.address, updates);
+
+      await databaseService.createActivity({
+        user_address: user.address,
+        activity_type: 'profile_updated',
+        title: 'Updated profile',
+        description: 'Profile information has been updated',
+      });
+
+      showToast('Profile updated successfully!', 'success');
+      setIsEditing(false);
+
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showToast('Failed to update profile. Please try again.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
