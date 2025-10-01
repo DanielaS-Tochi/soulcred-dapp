@@ -106,8 +106,8 @@ const WelcomeScreen: React.FC = () => {
           </h1>
           
           <p className="text-xl text-gray-700 dark:text-gray-200 mb-8 max-w-3xl mx-auto leading-relaxed">
-            The decentralized platform for issuing and managing Soulbound Tokens that represent 
-            your learning achievements, skills, and community contributions.
+            The decentralized platform for issuing and managing Soulbound Tokens that represent
+            your learning achievements, skills, and community contributions. TEST: GitHub sync active!
           </p>
 
           {/* System Status */}
